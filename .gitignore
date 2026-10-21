@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-server/
+data/
+.DS_Store
+.lark-auth-qr*.png
+npm-debug.log*
