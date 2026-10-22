@@ -2,6 +2,12 @@ node_modules/
 dist/
 dist-server/
 data/
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage
+*.pyc
 .DS_Store
 .lark-auth-qr*.png
 npm-debug.log*

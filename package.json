@@ -4,17 +4,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n API,WEB -c cyan,green \"npm:dev:server\" \"npm:dev:web\"",
+    "dev": "concurrently -k -n API,VLM,WEB -c cyan,magenta,green \"npm:dev:server\" \"npm:dev:vlm\" \"npm:dev:web\"",
     "dev:web": "vite",
     "dev:server": "tsx watch server/index.ts",
+    "dev:vlm": "ai-vlm/backend/.venv/bin/python -m uvicorn app.main:app --app-dir ai-vlm/backend --host 0.0.0.0 --port 8001 --reload",
+    "vlm:install": "python3 -m venv ai-vlm/backend/.venv && ai-vlm/backend/.venv/bin/pip install -r ai-vlm/backend/requirements.txt",
+    "vlm:test": "PYTHONPATH=ai-vlm/backend ai-vlm/backend/.venv/bin/python -m pytest ai-vlm/backend/tests",
     "build": "vue-tsc --noEmit && vite build && tsc -p tsconfig.server.json",
-    "start": "node dist-server/index.js"
+    "start": "concurrently -k -n API,VLM -c cyan,magenta \"npm:start:server\" \"npm:start:vlm\"",
+    "start:server": "node dist-server/index.js",
+    "start:vlm": "ai-vlm/backend/.venv/bin/python -m uvicorn app.main:app --app-dir ai-vlm/backend --host 0.0.0.0 --port 8001"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
+    "echarts": "^6.0.0",
     "element-plus": "^2.11.5",
     "express": "^5.1.0",
     "pinia": "^3.0.3",

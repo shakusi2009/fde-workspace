@@ -35,14 +35,19 @@ const router = createRouter({
         },
         {
           path: 'vlm',
-          name: 'vlm',
-          component: () => import('@/views/PlaceholderView.vue'),
-          props: {
-            type: 'vlm',
-            title: '智驾 VLM 业务',
-            description: '面向智能驾驶场景的视觉语言模型业务空间',
-          },
-          meta: { title: '智驾 VLM 业务' },
+          redirect: '/vlm/overview',
+        },
+        {
+          path: 'vlm/overview',
+          name: 'vlm-overview',
+          component: () => import('@/views/vlm/VlmOverviewView.vue'),
+          meta: { title: 'VLM 总览' },
+        },
+        {
+          path: 'vlm/tasks',
+          name: 'vlm-tasks',
+          component: () => import('@/views/vlm/VlmTaskListView.vue'),
+          meta: { title: '任务列表' },
         },
         {
           path: 'agents',

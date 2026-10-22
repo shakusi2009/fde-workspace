@@ -8,6 +8,7 @@ import {
   Expand,
   Fold,
   Grid,
+  List,
   Lock,
   SwitchButton,
   User,
@@ -101,10 +102,20 @@ async function logout() {
             </el-menu-item>
           </el-sub-menu>
 
-          <el-menu-item index="/vlm">
-            <el-icon><DataAnalysis /></el-icon>
-            <template #title>智驾 VLM 业务</template>
-          </el-menu-item>
+          <el-sub-menu index="vlm">
+            <template #title>
+              <el-icon><DataAnalysis /></el-icon>
+              <span>智驾 VLM 业务</span>
+            </template>
+            <el-menu-item index="/vlm/overview">
+              <el-icon><DataAnalysis /></el-icon>
+              <template #title>VLM 总览</template>
+            </el-menu-item>
+            <el-menu-item index="/vlm/tasks">
+              <el-icon><List /></el-icon>
+              <template #title>任务列表</template>
+            </el-menu-item>
+          </el-sub-menu>
 
           <el-menu-item v-if="auth.can('agent_center')" index="/agents">
             <el-icon><Cpu /></el-icon>
@@ -143,7 +154,8 @@ async function logout() {
         <el-menu-item v-if="auth.can('account_center')" index="/account/roles">
           <el-icon><Avatar /></el-icon><span>角色管理</span>
         </el-menu-item>
-        <el-menu-item index="/vlm"><el-icon><DataAnalysis /></el-icon><span>智驾 VLM 业务</span></el-menu-item>
+        <el-menu-item index="/vlm/overview"><el-icon><DataAnalysis /></el-icon><span>VLM 总览</span></el-menu-item>
+        <el-menu-item index="/vlm/tasks"><el-icon><List /></el-icon><span>任务列表</span></el-menu-item>
         <el-menu-item v-if="auth.can('agent_center')" index="/agents">
           <el-icon><Cpu /></el-icon><span>智能体开发</span>
         </el-menu-item>

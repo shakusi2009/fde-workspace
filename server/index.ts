@@ -29,6 +29,22 @@ const sessions = new Map<string, SessionUser>()
 const captchas = new Map<string, { code: string; expiresAt: number }>()
 
 app.use(cors())
+app.use('/api/vlm', async (req, res) => {
+  if (req.method !== 'GET') {
+    res.status(405).json({ message: 'VLM 服务当前仅开放查询接口' })
+    return
+  }
+  try {
+    const target = new URL(`/api/vlm${req.url}`, 'http://127.0.0.1:8001')
+    const response = await fetch(target, { headers: { accept: 'application/json' } })
+    const body = await response.text()
+    res.status(response.status)
+    res.type(response.headers.get('content-type') ?? 'application/json')
+    res.send(body)
+  } catch {
+    res.status(503).json({ message: 'VLM 服务暂不可用，请确认 Python 服务已启动' })
+  }
+})
 app.use(express.json())
 
 function getSessionUser(userId: number): SessionUser | undefined {
