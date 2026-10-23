@@ -65,6 +65,41 @@ def test_list_drivers_uses_fixed_page_size_and_keyword(monkeypatch) -> None:
     assert response.json()["items"][0]["vin"] == "LGWEF6A50NH123456"
 
 
+def test_driver_options_searches_with_fixed_limit(monkeypatch) -> None:
+    def list_driver_options(*, keyword: str, limit: int):
+        assert keyword == "张"
+        assert limit == 50
+        return [
+            {
+                "id": 12,
+                "name": "张三",
+                "vin": "LGWEF6A50NH123456",
+                "vehicle_model": "坦克 500",
+                "phone": "13800138000",
+            }
+        ]
+
+    monkeypatch.setattr(
+        driver_service.repository,
+        "list_driver_options",
+        list_driver_options,
+        raising=False,
+    )
+    response = client.get(
+        "/api/agent-data/drivers/options?keyword=%E5%BC%A0"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": 12,
+            "name": "张三",
+            "vin": "LGWEF6A50NH123456",
+            "vehicle_model": "坦克 500",
+        }
+    ]
+
+
 def test_create_driver_normalizes_input(monkeypatch) -> None:
     captured = {}
 

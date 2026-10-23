@@ -49,6 +49,13 @@ class Driver(DriverPayload):
     update_time: datetime
 
 
+class DriverOption(BaseModel):
+    id: int
+    name: str
+    vin: str
+    vehicle_model: str
+
+
 class DriverPage(BaseModel):
     items: list[Driver] = Field(default_factory=list)
     total: int = 0

@@ -133,7 +133,7 @@ async function logout() {
             </template>
             <el-menu-item index="/agents">
               <el-icon><Cpu /></el-icon>
-              <template #title>车端Agent</template>
+              <template #title>端云Agent</template>
             </el-menu-item>
             <el-menu-item index="/agents/base-data">
               <el-icon><Files /></el-icon>
@@ -178,7 +178,7 @@ async function logout() {
         <el-menu-item index="/vlm/prompts"><el-icon><Document /></el-icon><span>提示词管理</span></el-menu-item>
         <el-sub-menu v-if="auth.can('agent_center')" index="mobile-agents">
           <template #title><el-icon><MagicStick /></el-icon><span>车联AI业务</span></template>
-          <el-menu-item index="/agents"><el-icon><Cpu /></el-icon><span>车端Agent</span></el-menu-item>
+          <el-menu-item index="/agents"><el-icon><Cpu /></el-icon><span>端云Agent</span></el-menu-item>
           <el-menu-item index="/agents/base-data">
             <el-icon><Files /></el-icon><span>基础数据管理</span>
           </el-menu-item>

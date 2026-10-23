@@ -20,6 +20,13 @@ export type DriverPage = {
   page_size: number
 }
 
+export type DriverOption = {
+  id: number
+  name: string
+  vin: string
+  vehicle_model: string
+}
+
 export type DriverPayload = {
   name: string
   phone: string
@@ -36,6 +43,11 @@ export function getDrivers(page = 1, keyword = '') {
     keyword,
   })
   return api<DriverPage>(`/agent-data/drivers?${params}`)
+}
+
+export function getDriverOptions(keyword = '') {
+  const params = new URLSearchParams({ keyword })
+  return api<DriverOption[]>(`/agent-data/drivers/options?${params}`)
 }
 
 export function createDriver(payload: DriverPayload) {

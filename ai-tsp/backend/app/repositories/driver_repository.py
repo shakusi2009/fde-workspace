@@ -112,6 +112,39 @@ class DriverRepository:
             connection.close()
         return rows, total
 
+    def list_driver_options(
+        self,
+        *,
+        keyword: str,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        connection = self._connect()
+        try:
+            where_sql = ""
+            params: tuple[Any, ...] = ()
+            if keyword:
+                where_sql = "WHERE `name` LIKE %s OR `vin` LIKE %s"
+                pattern = f"%{keyword}%"
+                params = (pattern, pattern)
+
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"""
+                        SELECT `id`, `name`, `vin`, `vehicle_model`
+                        FROM `tsp_drivers`
+                        {where_sql}
+                        ORDER BY `id` DESC
+                        LIMIT %s
+                    """,
+                    (*params, limit),
+                )
+                rows = list(cursor.fetchall())
+        except pymysql.MySQLError as exc:
+            raise DriverRepositoryError("读取车主选项失败") from exc
+        finally:
+            connection.close()
+        return rows
+
     def create_driver(
         self,
         *,

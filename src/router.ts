@@ -64,13 +64,8 @@ const router = createRouter({
         {
           path: 'agents',
           name: 'agents',
-          component: () => import('@/views/PlaceholderView.vue'),
-          props: {
-            type: 'agent',
-            title: '车端Agent',
-            description: '编排、调试和评估汽车业务智能体',
-          },
-          meta: { title: '车端Agent', permission: 'agent_center' },
+          component: () => import('@/views/agents/CarAgentView.vue'),
+          meta: { title: '端云Agent', permission: 'agent_center' },
         },
         {
           path: 'agents/base-data',

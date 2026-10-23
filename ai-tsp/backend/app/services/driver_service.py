@@ -1,6 +1,7 @@
 from app.config import get_settings
 from app.driver_schemas import (
     DriverCreate,
+    DriverOption,
     DriverPage,
     DriverUpdate,
 )
@@ -8,6 +9,7 @@ from app.repositories.driver_repository import DriverRepository
 
 
 DRIVER_PAGE_SIZE = 10
+DRIVER_OPTION_LIMIT = 50
 
 
 class DriverService:
@@ -28,6 +30,13 @@ class DriverService:
             page=page,
             page_size=DRIVER_PAGE_SIZE,
         )
+
+    def list_driver_options(self, *, keyword: str) -> list[DriverOption]:
+        rows = self.repository.list_driver_options(
+            keyword=keyword.strip(),
+            limit=DRIVER_OPTION_LIMIT,
+        )
+        return [DriverOption.model_validate(row) for row in rows]
 
     def create_driver(self, payload: DriverCreate) -> int:
         return self.repository.create_driver(**payload.model_dump())

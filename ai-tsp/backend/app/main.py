@@ -9,6 +9,7 @@ from app.config import get_settings
 from app.driver_schemas import (
     DriverCreate,
     DriverMutationResult,
+    DriverOption,
     DriverPage,
     DriverUpdate,
 )
@@ -53,6 +54,19 @@ def list_drivers(
 ) -> DriverPage:
     try:
         return driver_service.list_drivers(page=page, keyword=keyword)
+    except DriverRepositoryError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get(
+    f"{settings.api_prefix}/drivers/options",
+    response_model=list[DriverOption],
+)
+def list_driver_options(
+    keyword: str = Query(default="", max_length=100),
+) -> list[DriverOption]:
+    try:
+        return driver_service.list_driver_options(keyword=keyword)
     except DriverRepositoryError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
