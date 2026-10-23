@@ -15,7 +15,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
-    const error = new Error(payload.message || '请求失败') as ApiError
+    const error = new Error(payload.message || payload.detail || '请求失败') as ApiError
     error.status = response.status
     if (response.status === 401) {
       localStorage.removeItem('fde_token')

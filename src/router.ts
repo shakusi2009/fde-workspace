@@ -47,7 +47,19 @@ const router = createRouter({
           path: 'vlm/tasks',
           name: 'vlm-tasks',
           component: () => import('@/views/vlm/VlmTaskListView.vue'),
-          meta: { title: '任务列表' },
+          meta: { title: '打标任务' },
+        },
+        {
+          path: 'vlm/tasks/:taskId/items',
+          name: 'vlm-task-items',
+          component: () => import('@/views/vlm/VlmTaskItemListView.vue'),
+          meta: { title: '任务执行明细' },
+        },
+        {
+          path: 'vlm/prompts',
+          name: 'vlm-prompts',
+          component: () => import('@/views/vlm/VlmPromptManagementView.vue'),
+          meta: { title: '提示词管理' },
         },
         {
           path: 'agents',

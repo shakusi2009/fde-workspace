@@ -1313,6 +1313,16 @@ button {
   border-radius: 2px;
 }
 
+.vlm-intro-action-buttons {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+}
+
+.vlm-intro-action-buttons .el-button + .el-button {
+  margin-left: 0;
+}
+
 .data-state {
   display: flex;
   align-items: center;
@@ -1326,6 +1336,63 @@ button {
   height: 6px;
   background: var(--orange);
   box-shadow: 0 0 8px rgba(240, 160, 75, 0.55);
+}
+
+.vlm-model-dialog,
+.vlm-model-form-dialog {
+  max-width: calc(100vw - 28px);
+}
+
+.vlm-model-list-header {
+  min-height: 58px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.vlm-model-list-header span {
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+}
+
+.vlm-model-list-header h3 {
+  margin: 6px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vlm-model-table {
+  min-height: 300px;
+  border: 1px solid var(--line);
+}
+
+.vlm-model-table .el-table__body td.el-table__cell {
+  height: 48px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.vlm-model-empty {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #516461;
+}
+
+.vlm-model-empty strong {
+  margin-top: 10px;
+  color: #a1b2af;
+  font-size: 12px;
+}
+
+.vlm-model-empty span {
+  margin-top: 6px;
+  color: #5f726f;
+  font-size: 9px;
 }
 
 .vlm-kpi-grid {
@@ -1513,10 +1580,19 @@ button {
   transform: rotate(45deg);
 }
 
-.vlm-task-surface {
+.vlm-task-surface,
+.vlm-task-item-surface {
   min-height: calc(100vh - 190px);
   display: flex;
   flex-direction: column;
+}
+
+.vlm-task-toolbar-actions,
+.vlm-task-item-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .vlm-table-title {
@@ -1543,18 +1619,68 @@ button {
   font-size: 13px;
 }
 
-.vlm-task-table {
+.vlm-task-table,
+.vlm-task-item-table {
   flex: 1;
+}
+
+.vlm-task-id-link {
+  border: 0;
+  padding: 3px 6px;
+  color: var(--cyan);
+  background: transparent;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.vlm-task-id-link:hover,
+.vlm-task-id-link:focus-visible {
+  color: #7af1eb;
+  outline: none;
 }
 
 .vlm-task-table .el-table__body tr {
   height: 48px;
 }
 
-.vlm-task-table .el-table__body td.el-table__cell {
+.vlm-task-table .el-table__body td.el-table__cell,
+.vlm-task-item-table .el-table__body td.el-table__cell {
   height: 48px;
   padding-top: 8px;
   padding-bottom: 8px;
+}
+
+.vlm-task-dialog {
+  max-width: calc(100vw - 28px);
+}
+
+.vlm-execution-dialog {
+  max-width: calc(100vw - 28px);
+}
+
+.vlm-execution-dialog .el-textarea__inner {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  line-height: 1.65;
+}
+
+.vlm-tos-dialog {
+  max-width: calc(100vw - 28px);
+}
+
+.vlm-tos-action {
+  margin: -2px 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.vlm-tos-action small {
+  color: var(--muted);
+  font-size: 9px;
 }
 
 .token-value {
@@ -1590,6 +1716,263 @@ button {
   align-items: center;
   justify-content: flex-end;
   border-top: 1px solid var(--line);
+}
+
+.vlm-prompt-view {
+  display: grid;
+  gap: 20px;
+}
+
+.vlm-prompt-toolbar {
+  min-height: 72px;
+  padding: 14px 18px;
+  align-items: center;
+  gap: 16px;
+}
+
+.vlm-prompt-toolbar > div {
+  min-width: 0;
+}
+
+.vlm-prompt-toolbar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vlm-prompt-content {
+  min-height: 360px;
+}
+
+.vlm-prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.vlm-prompt-card {
+  min-width: 0;
+  min-height: 306px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-top-width: 2px;
+  border-radius: 4px;
+  background: rgba(8, 13, 16, 0.88);
+}
+
+.vlm-prompt-card.open {
+  border-top-color: #4c9fff;
+}
+
+.vlm-prompt-card.closed {
+  border-top-color: #68716f;
+  background: rgba(13, 16, 17, 0.78);
+}
+
+.vlm-prompt-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.vlm-prompt-title {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.vlm-prompt-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: inline-grid;
+  place-items: center;
+  color: #4c9fff;
+  border: 1px solid rgba(76, 159, 255, 0.32);
+  border-radius: 3px;
+  background: rgba(76, 159, 255, 0.08);
+}
+
+.vlm-prompt-card.closed .vlm-prompt-icon {
+  color: #7b8784;
+  border-color: rgba(123, 135, 132, 0.26);
+  background: rgba(123, 135, 132, 0.07);
+}
+
+.vlm-prompt-title > div {
+  min-width: 0;
+}
+
+.vlm-prompt-title small {
+  color: var(--cyan);
+  font-size: 8px;
+}
+
+.vlm-prompt-card.closed .vlm-prompt-title small {
+  color: #788481;
+}
+
+.vlm-prompt-title h3 {
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: #d9e5e3;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlm-prompt-card.closed .vlm-prompt-title h3 {
+  color: #8d9996;
+}
+
+.vlm-prompt-card-controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vlm-prompt-status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #5da9ff;
+  font-size: 9px;
+}
+
+.vlm-prompt-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4c9fff;
+  box-shadow: 0 0 8px rgba(76, 159, 255, 0.55);
+}
+
+.vlm-prompt-card.closed .vlm-prompt-status {
+  color: #717c79;
+}
+
+.vlm-prompt-card.closed .vlm-prompt-status i {
+  background: #68716f;
+  box-shadow: none;
+}
+
+.vlm-prompt-actions {
+  display: flex;
+  align-items: center;
+}
+
+.vlm-prompt-actions .el-button {
+  width: 26px;
+  height: 26px;
+  margin: 0;
+}
+
+.vlm-prompt-text {
+  height: 176px;
+  margin: 16px 0 14px;
+  padding: 13px 2px;
+  overflow: auto;
+  color: #acbdba;
+  border-top: 1px solid rgba(151, 184, 179, 0.11);
+  border-bottom: 1px solid rgba(151, 184, 179, 0.11);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.vlm-prompt-card.closed .vlm-prompt-text {
+  color: #77817f;
+}
+
+.vlm-prompt-card footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #61736f;
+  font-size: 8px;
+}
+
+.vlm-prompt-card footer span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vlm-prompt-card footer span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlm-prompt-empty {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #536562;
+  border: 1px dashed rgba(151, 184, 179, 0.14);
+}
+
+.vlm-prompt-empty strong {
+  margin-top: 13px;
+  color: #9aaba8;
+  font-size: 12px;
+}
+
+.vlm-prompt-empty span {
+  margin-top: 7px;
+  color: #60716e;
+  font-size: 9px;
+}
+
+.vlm-prompt-dialog {
+  max-width: calc(100vw - 28px);
+}
+
+@media (max-width: 700px) {
+  .vlm-task-toolbar-actions,
+  .vlm-task-item-actions {
+    align-self: stretch;
+    flex-wrap: wrap;
+  }
+
+  .vlm-task-toolbar-actions .el-button,
+  .vlm-task-item-actions .el-button {
+    flex: 1 1 calc(50% - 4px);
+    margin: 0;
+  }
+
+  .vlm-prompt-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vlm-prompt-toolbar-actions {
+    align-self: stretch;
+  }
+
+  .vlm-prompt-toolbar-actions .el-button {
+    flex: 1;
+  }
+
+  .vlm-prompt-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Placeholder */
@@ -1894,7 +2277,16 @@ button {
   .vlm-intro-actions {
     width: 100%;
     min-width: 0;
-    justify-content: space-between;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vlm-intro-action-buttons {
+    width: 100%;
+  }
+
+  .vlm-intro-action-buttons .el-button {
+    flex: 1;
   }
 
   .vlm-intro-band::after {
@@ -1942,7 +2334,8 @@ button {
     width: 12px;
   }
 
-  .vlm-task-surface {
+  .vlm-task-surface,
+  .vlm-task-item-surface {
     min-height: calc(100svh - 158px);
   }
 

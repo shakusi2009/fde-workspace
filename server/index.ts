@@ -29,14 +29,45 @@ const sessions = new Map<string, SessionUser>()
 const captchas = new Map<string, { code: string; expiresAt: number }>()
 
 app.use(cors())
-app.use('/api/vlm', async (req, res) => {
-  if (req.method !== 'GET') {
-    res.status(405).json({ message: 'VLM 服务当前仅开放查询接口' })
+app.use(express.json())
+app.use('/api/vlm', (req, res, next) => {
+  if (req.method === 'GET') {
+    next()
     return
   }
+  auth(req, res, next)
+}, async (req, res) => {
   try {
+    if (
+      req.method === 'POST'
+      && /^\/tasks\/\d+\/executions$/.test(req.path)
+    ) {
+      const modelId = typeof req.body?.model_id === 'string'
+        ? req.body.model_id.trim()
+        : ''
+      const model = modelId
+        ? db.prepare('SELECT id FROM vlm_models WHERE model_id = ?').get(modelId)
+        : undefined
+      if (!model) {
+        res.status(400).json({ message: '请选择模型管理中存在的模型 ID' })
+        return
+      }
+    }
+
     const target = new URL(`/api/vlm${req.url}`, 'http://127.0.0.1:8001')
-    const response = await fetch(target, { headers: { accept: 'application/json' } })
+    const payload = req.method === 'POST' && req.path === '/prompts'
+      ? { ...req.body, create_by: req.user?.username }
+      : req.body
+    const response = await fetch(target, {
+      method: req.method,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      body: req.method === 'GET' || req.method === 'HEAD'
+        ? undefined
+        : JSON.stringify(payload),
+    })
     const body = await response.text()
     res.status(response.status)
     res.type(response.headers.get('content-type') ?? 'application/json')
@@ -45,7 +76,6 @@ app.use('/api/vlm', async (req, res) => {
     res.status(503).json({ message: 'VLM 服务暂不可用，请确认 Python 服务已启动' })
   }
 })
-app.use(express.json())
 
 function getSessionUser(userId: number): SessionUser | undefined {
   const row = db.prepare(`
@@ -290,6 +320,92 @@ app.delete('/api/roles/:id', auth, requirePermission('account_center'), (req, re
   }
   db.prepare('DELETE FROM roles WHERE id = ?').run(id)
   res.json({ message: '角色已删除' })
+})
+
+function parseModelId(value: unknown): { modelId?: string; error?: string } {
+  const modelId = typeof value === 'string' ? value.trim() : ''
+  if (!modelId) return { error: '请输入模型 ID' }
+  if (modelId.length > 255) return { error: '模型 ID 不能超过 255 个字符' }
+  return { modelId }
+}
+
+app.get('/api/vlm-models', auth, (_req, res) => {
+  const models = db.prepare(`
+    SELECT id, model_id, created_at, updated_at
+    FROM vlm_models
+    ORDER BY id ASC
+  `).all()
+  res.json(models)
+})
+
+app.post('/api/vlm-models', auth, (req, res) => {
+  const parsed = parseModelId(req.body?.model_id)
+  if (!parsed.modelId) {
+    res.status(400).json({ message: parsed.error })
+    return
+  }
+
+  try {
+    const result = db.prepare(`
+      INSERT INTO vlm_models (model_id)
+      VALUES (?)
+    `).run(parsed.modelId)
+    res.status(201).json({
+      id: Number(result.lastInsertRowid),
+      message: '模型创建成功',
+    })
+  } catch (error) {
+    const message = error instanceof Error && error.message.includes('UNIQUE')
+      ? '模型 ID 已存在'
+      : '模型创建失败'
+    res.status(400).json({ message })
+  }
+})
+
+app.put('/api/vlm-models/:id', auth, (req, res) => {
+  const id = Number(req.params.id)
+  const parsed = parseModelId(req.body?.model_id)
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(400).json({ message: '模型记录 ID 无效' })
+    return
+  }
+  if (!parsed.modelId) {
+    res.status(400).json({ message: parsed.error })
+    return
+  }
+
+  try {
+    const result = db.prepare(`
+      UPDATE vlm_models
+      SET model_id = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(parsed.modelId, id)
+    if (!result.changes) {
+      res.status(404).json({ message: '模型不存在' })
+      return
+    }
+    res.json({ message: '模型更新成功' })
+  } catch (error) {
+    const message = error instanceof Error && error.message.includes('UNIQUE')
+      ? '模型 ID 已存在'
+      : '模型更新失败'
+    res.status(400).json({ message })
+  }
+})
+
+app.delete('/api/vlm-models/:id', auth, (req, res) => {
+  const id = Number(req.params.id)
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(400).json({ message: '模型记录 ID 无效' })
+    return
+  }
+
+  const result = db.prepare('DELETE FROM vlm_models WHERE id = ?').run(id)
+  if (!result.changes) {
+    res.status(404).json({ message: '模型不存在' })
+    return
+  }
+  res.json({ message: '模型已删除' })
 })
 
 app.get('/api/overview', auth, (_req, res) => {

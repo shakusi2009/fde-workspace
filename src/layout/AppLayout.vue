@@ -5,6 +5,7 @@ import {
   Avatar,
   Cpu,
   DataAnalysis,
+  Document,
   Expand,
   Fold,
   Grid,
@@ -22,7 +23,9 @@ const auth = useAuthStore()
 const collapsed = ref(false)
 const mobileNav = ref(false)
 
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => (
+  route.path.startsWith('/vlm/tasks/') ? '/vlm/tasks' : route.path
+))
 const initials = computed(() => auth.user?.display_name.slice(0, 1).toUpperCase() ?? 'S')
 
 async function logout() {
@@ -113,7 +116,11 @@ async function logout() {
             </el-menu-item>
             <el-menu-item index="/vlm/tasks">
               <el-icon><List /></el-icon>
-              <template #title>任务列表</template>
+              <template #title>打标任务</template>
+            </el-menu-item>
+            <el-menu-item index="/vlm/prompts">
+              <el-icon><Document /></el-icon>
+              <template #title>提示词管理</template>
             </el-menu-item>
           </el-sub-menu>
 
@@ -155,7 +162,8 @@ async function logout() {
           <el-icon><Avatar /></el-icon><span>角色管理</span>
         </el-menu-item>
         <el-menu-item index="/vlm/overview"><el-icon><DataAnalysis /></el-icon><span>VLM 总览</span></el-menu-item>
-        <el-menu-item index="/vlm/tasks"><el-icon><List /></el-icon><span>任务列表</span></el-menu-item>
+        <el-menu-item index="/vlm/tasks"><el-icon><List /></el-icon><span>打标任务</span></el-menu-item>
+        <el-menu-item index="/vlm/prompts"><el-icon><Document /></el-icon><span>提示词管理</span></el-menu-item>
         <el-menu-item v-if="auth.can('agent_center')" index="/agents">
           <el-icon><Cpu /></el-icon><span>智能体开发</span>
         </el-menu-item>

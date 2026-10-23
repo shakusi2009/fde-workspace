@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     volcengine_rds_ssl_mode: str = ""
     volcengine_rds_connect_timeout: int = 5
 
+    tos_access_key: str = ""
+    tos_secret_key: str = ""
+
+    model_agent_name: str = ""
+    model_agent_api_key: str = ""
+    model_agent_base_url: str = "https://ark.cn-beijing.volces.com/api/v3"
+
     model_config = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
@@ -41,6 +48,17 @@ class Settings(BaseSettings):
     @property
     def rds_engine(self) -> str:
         return self.volcengine_rds_engine.strip().lower() or "mysql"
+
+    @property
+    def tos_configured(self) -> bool:
+        return bool(self.tos_access_key.strip() and self.tos_secret_key.strip())
+
+    @property
+    def model_agent_configured(self) -> bool:
+        return bool(
+            self.model_agent_api_key.strip()
+            and self.model_agent_base_url.strip()
+        )
 
 
 @lru_cache

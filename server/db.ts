@@ -37,6 +37,13 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (role_id) REFERENCES roles(id)
   );
+
+  CREATE TABLE IF NOT EXISTS vlm_models (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model_id TEXT NOT NULL UNIQUE CHECK (length(trim(model_id)) > 0),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `)
 
 const roleCount = db.prepare('SELECT COUNT(*) AS count FROM roles').get() as { count: number }

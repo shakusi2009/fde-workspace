@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="use-iframe" content="true">
+  <meta name="html-box-height-mode" content="auto">
+  <meta name="description" content="方舟通过TOS内网预签名URL访问mp4文件的调用链路示意">
+  <title>方舟通过TOS内网预签名URL访问mp4链路</title>
+</head>
+<body>
+<div style="width:100%;box-sizing:border-box;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:#f7f9fc;padding:16px;border-radius:12px;">
+<svg viewBox="0 0 1000 340" width="100%" role="img" aria-label="方舟通过TOS内网预签名URL访问mp4的调用链路示意">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4a7dbd"/>
+    </marker>
+  </defs>
+
+  <!-- 节点1：TOS桶 -->
+  <rect x="20" y="70" width="190" height="100" rx="10" fill="#e8f1fb" stroke="#4a7dbd" stroke-width="1.5"/>
+  <text x="115" y="98" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f3a5f">TOS 私有桶</text>
+  <text x="115" y="120" text-anchor="middle" font-size="13" fill="#33507a">华北2（cn-beijing）</text>
+  <text x="115" y="140" text-anchor="middle" font-size="13" fill="#33507a">对象：xxx.mp4</text>
+  <text x="115" y="160" text-anchor="middle" font-size="12" fill="#6b82a0">私有读写 · 不公开</text>
+
+  <!-- SDK 生成 -->
+  <rect x="250" y="18" width="230" height="46" rx="23" fill="#ffffff" stroke="#8fa9c8" stroke-width="1.2" stroke-dasharray="5 3"/>
+  <text x="365" y="37" text-anchor="middle" font-size="13" font-weight="bold" fill="#1f3a5f">① TOS SDK 生成预签名 URL</text>
+  <text x="365" y="55" text-anchor="middle" font-size="11" fill="#5a7190">endpoint = tos-cn-beijing.ivolces.com</text>
+
+  <!-- 箭头1 -->
+  <line x1="210" y1="120" x2="248" y2="120" stroke="#4a7dbd" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- 节点2：预签名URL -->
+  <rect x="300" y="70" width="320" height="100" rx="10" fill="#fdf3e3" stroke="#e0a03a" stroke-width="1.5"/>
+  <text x="460" y="98" text-anchor="middle" font-size="15" font-weight="bold" fill="#7a4a10">内网 GET 预签名 URL</text>
+  <text x="460" y="120" text-anchor="middle" font-size="11" fill="#8a5a20" font-family="Menlo,Consolas,monospace">bucket.tos-cn-beijing.ivolces.com/</text>
+  <text x="460" y="136" text-anchor="middle" font-size="11" fill="#8a5a20" font-family="Menlo,Consolas,monospace">path/to/object.mp4?…signature…</text>
+  <text x="460" y="158" text-anchor="middle" font-size="12" fill="#8a6a30">有效期 expires 可设（如 3600s）</text>
+
+  <!-- 箭头2 -->
+  <line x1="620" y1="120" x2="690" y2="120" stroke="#4a7dbd" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="655" y="105" text-anchor="middle" font-size="12" fill="#33507a">② 作为</text>
+  <text x="655" y="140" text-anchor="middle" font-size="12" fill="#33507a">video_url</text>
+
+  <!-- 节点3：方舟API -->
+  <rect x="700" y="70" width="270" height="100" rx="10" fill="#e6f4ea" stroke="#3da066" stroke-width="1.5"/>
+  <text x="835" y="98" text-anchor="middle" font-size="15" font-weight="bold" fill="#1d5c34">火山方舟 API</text>
+  <text x="835" y="120" text-anchor="middle" font-size="13" fill="#2c6b43">视频理解模型</text>
+  <text x="835" y="140" text-anchor="middle" font-size="12" fill="#4c8a63">ark.cn-beijing.volces.com/api/v3</text>
+  <text x="835" y="160" text-anchor="middle" font-size="12" fill="#4c8a63">返回识别结果</text>
+
+  <!-- 内网链路说明带 -->
+  <rect x="20" y="220" width="950" height="54" rx="10" fill="#eef2f7" stroke="#a9bcd4" stroke-width="1.2"/>
+  <text x="495" y="242" text-anchor="middle" font-size="14" font-weight="bold" fill="#1f3a5f">方舟 Get 该 URL 时走 TOS-PrivateLink 内网链路</text>
+  <text x="495" y="262" text-anchor="middle" font-size="13" fill="#33507a">全程不产生公网流量 · 传输更稳、成本更低</text>
+
+  <!-- 返回链路：方舟 → 内网链路 → TOS -->
+  <path d="M 835 170 L 835 247 L 495 247 L 115 247 L 115 172" fill="none" stroke="#3da066" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+  <text x="665" y="205" font-size="11" fill="#3da066">③ 内网拉取</text>
+
+  <!-- 外网阻断 -->
+  <rect x="20" y="290" width="950" height="38" rx="8" fill="#fdecea" stroke="#d9544d" stroke-width="1.2"/>
+  <text x="495" y="314" text-anchor="middle" font-size="13" fill="#a03028">外网（公网）无法直接访问该 URL ✕　→　私网域名天然防泄漏，配合预签名最安全</text>
+</svg>
+<p style="font-size:12px;color:#8a93a3;margin:6px 2px 0;">示意图：基于火山方舟官方「通过 TOS 内网预签名 URL 传入文件」最佳实践绘制</p>
+</div>
+</body>
+</html>
