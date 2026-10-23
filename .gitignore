@@ -11,3 +11,4 @@ __pycache__/
 .DS_Store
 .lark-auth-qr*.png
 npm-debug.log*
+docs/plans/
