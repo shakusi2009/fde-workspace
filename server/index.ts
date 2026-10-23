@@ -25,6 +25,8 @@ declare global {
 
 const app = express()
 const port = Number(process.env.PORT ?? 3001)
+const vlmServiceUrl = process.env.VLM_SERVICE_URL ?? 'http://127.0.0.1:8001'
+const tspServiceUrl = process.env.TSP_SERVICE_URL ?? 'http://127.0.0.1:8002'
 const sessions = new Map<string, SessionUser>()
 const captchas = new Map<string, { code: string; expiresAt: number }>()
 
@@ -54,7 +56,7 @@ app.use('/api/vlm', (req, res, next) => {
       }
     }
 
-    const target = new URL(`/api/vlm${req.url}`, 'http://127.0.0.1:8001')
+    const target = new URL(`/api/vlm${req.url}`, vlmServiceUrl)
     const payload = req.method === 'POST' && req.path === '/prompts'
       ? { ...req.body, create_by: req.user?.username }
       : req.body
@@ -76,6 +78,38 @@ app.use('/api/vlm', (req, res, next) => {
     res.status(503).json({ message: 'VLM 服务暂不可用，请确认 Python 服务已启动' })
   }
 })
+
+app.use(
+  '/api/agent-data',
+  auth,
+  requirePermission('agent_center'),
+  async (req, res) => {
+    try {
+      const target = new URL(
+        `/api/agent-data${req.url}`,
+        tspServiceUrl,
+      )
+      const response = await fetch(target, {
+        method: req.method,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        body: req.method === 'GET' || req.method === 'HEAD'
+          ? undefined
+          : JSON.stringify(req.body),
+      })
+      const body = await response.text()
+      res.status(response.status)
+      res.type(response.headers.get('content-type') ?? 'application/json')
+      res.send(body)
+    } catch {
+      res.status(503).json({
+        message: '基础数据服务暂不可用，请确认 Python 服务已启动',
+      })
+    }
+  },
+)
 
 function getSessionUser(userId: number): SessionUser | undefined {
   const row = db.prepare(`

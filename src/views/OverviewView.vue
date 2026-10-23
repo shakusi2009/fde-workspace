@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, Cpu, DataAnalysis, Lock, User } from '@element-plus/icons-vue'
+import { ArrowRight, Cpu, DataAnalysis, Lock, MagicStick, User } from '@element-plus/icons-vue'
 import { api } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -86,8 +86,8 @@ onMounted(async () => {
         </button>
         <button v-if="auth.can('agent_center')" type="button" @click="router.push('/agents')">
           <span class="module-number">03</span>
-          <el-icon><Cpu /></el-icon>
-          <span><strong>智能体开发</strong><small>业务智能体工作区</small></span>
+          <el-icon><MagicStick /></el-icon>
+          <span><strong>车联AI业务</strong><small>业务智能体工作区</small></span>
           <el-icon class="module-arrow"><ArrowRight /></el-icon>
         </button>
       </section>

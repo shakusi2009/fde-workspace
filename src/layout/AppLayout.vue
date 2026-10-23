@@ -7,10 +7,12 @@ import {
   DataAnalysis,
   Document,
   Expand,
+  Files,
   Fold,
   Grid,
   List,
   Lock,
+  MagicStick,
   SwitchButton,
   User,
 } from '@element-plus/icons-vue'
@@ -124,10 +126,20 @@ async function logout() {
             </el-menu-item>
           </el-sub-menu>
 
-          <el-menu-item v-if="auth.can('agent_center')" index="/agents">
-            <el-icon><Cpu /></el-icon>
-            <template #title>智能体开发</template>
-          </el-menu-item>
+          <el-sub-menu v-if="auth.can('agent_center')" index="agents">
+            <template #title>
+              <el-icon><MagicStick /></el-icon>
+              <span>车联AI业务</span>
+            </template>
+            <el-menu-item index="/agents">
+              <el-icon><Cpu /></el-icon>
+              <template #title>车端Agent</template>
+            </el-menu-item>
+            <el-menu-item index="/agents/base-data">
+              <el-icon><Files /></el-icon>
+              <template #title>基础数据管理</template>
+            </el-menu-item>
+          </el-sub-menu>
         </el-menu>
       </el-scrollbar>
 
@@ -164,9 +176,13 @@ async function logout() {
         <el-menu-item index="/vlm/overview"><el-icon><DataAnalysis /></el-icon><span>VLM 总览</span></el-menu-item>
         <el-menu-item index="/vlm/tasks"><el-icon><List /></el-icon><span>打标任务</span></el-menu-item>
         <el-menu-item index="/vlm/prompts"><el-icon><Document /></el-icon><span>提示词管理</span></el-menu-item>
-        <el-menu-item v-if="auth.can('agent_center')" index="/agents">
-          <el-icon><Cpu /></el-icon><span>智能体开发</span>
-        </el-menu-item>
+        <el-sub-menu v-if="auth.can('agent_center')" index="mobile-agents">
+          <template #title><el-icon><MagicStick /></el-icon><span>车联AI业务</span></template>
+          <el-menu-item index="/agents"><el-icon><Cpu /></el-icon><span>车端Agent</span></el-menu-item>
+          <el-menu-item index="/agents/base-data">
+            <el-icon><Files /></el-icon><span>基础数据管理</span>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-drawer>
   </div>
