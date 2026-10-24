@@ -53,10 +53,26 @@ const vehicleLogs = ref<LogEntry[]>([])
 const cloudLogs = ref<LogEntry[]>([])
 const vehicleLogRef = ref<HTMLElement>()
 const cloudLogRef = ref<HTMLElement>()
+const flowStageRef = ref<HTMLElement>()
+const routeNodeRef = ref<HTMLElement>()
+const callNodeRef = ref<HTMLElement>()
+const vehiclePanelRef = ref<HTMLElement>()
+const cloudPanelRef = ref<HTMLElement>()
 const state = ref<FlowState>('idle')
+const handoffStep = ref(0)
 const driverLoading = ref(false)
 const modelLoading = ref(false)
+const networkLayout = ref({
+  width: 1000,
+  height: 720,
+  vehicleRoute: 'M 200 136 V 76 H 326',
+  routeCall: 'M 480 76 H 520',
+  callCloud: 'M 674 76 H 800 V 136',
+  cloudVehicle: 'M 560 526 H 440',
+})
 let runId = 0
+let networkResizeObserver: ResizeObserver | undefined
+let networkFrame = 0
 
 const selectedDriver = computed(
   () => drivers.value.find((driver) => driver.id === selectedDriverId.value),
@@ -99,6 +115,7 @@ function addCloudLog(message: string, tone?: LogEntry['tone']) {
 function clearConversation() {
   runId += 1
   state.value = 'idle'
+  handoffStep.value = 0
   vehicleInput.value = ''
   vehicleOutput.value = ''
   vehicleLogs.value = []
@@ -161,15 +178,17 @@ async function sendFromVehicle() {
   if (!(await waitForNextLog(currentRun))) return
   addVehicleLog('A2A 请求已封装并发送云端')
 
-  if (!(await waitForNextLog(currentRun))) return
   state.value = 'handoff'
-
-  if (!(await waitForNextLog(currentRun))) return
+  for (const step of [1, 2, 3]) {
+    handoffStep.value = step
+    if (!(await delay(3000, currentRun))) return
+  }
+  handoffStep.value = 0
   state.value = 'cloud_running'
   addCloudLog(`收到来自 ${driver.name} 车辆的 A2A 请求`, 'critical')
 
   const cloudMessages = [
-    `备车 Agent 正在分析 ${driver.vehicle_model} 的任务上下文`,
+    `云端 Agent 正在分析 ${driver.vehicle_model} 的任务上下文`,
     '查询车主当前季节习惯的温度：22度',
     '联网查询当前所在城市 北京 天气',
     '今天气温-1度，有霜冻。需要：除冰除霜、暖风预热',
@@ -227,13 +246,79 @@ async function loadModels() {
   }
 }
 
-onMounted(() => {
+function updateNetworkLayout() {
+  const stage = flowStageRef.value
+  const route = routeNodeRef.value
+  const call = callNodeRef.value
+  const vehicle = vehiclePanelRef.value
+  const cloud = cloudPanelRef.value
+  if (!stage || !route || !call || !vehicle || !cloud) return
+
+  const stageRect = stage.getBoundingClientRect()
+  const routeRect = route.getBoundingClientRect()
+  const callRect = call.getBoundingClientRect()
+  const vehicleRect = vehicle.getBoundingClientRect()
+  const cloudRect = cloud.getBoundingClientRect()
+  const point = (x: number, y: number) => ({
+    x: Math.round((x - stageRect.left) * 10) / 10,
+    y: Math.round((y - stageRect.top) * 10) / 10,
+  })
+
+  const vehicleTop = point(
+    vehicleRect.left + vehicleRect.width / 2,
+    vehicleRect.top,
+  )
+  const routeLeft = point(routeRect.left, routeRect.top + routeRect.height / 2)
+  const routeRight = point(routeRect.right, routeRect.top + routeRect.height / 2)
+  const callLeft = point(callRect.left, callRect.top + callRect.height / 2)
+  const callRight = point(callRect.right, callRect.top + callRect.height / 2)
+  const cloudTop = point(cloudRect.left + cloudRect.width / 2, cloudRect.top)
+  const cloudLeft = point(cloudRect.left, cloudRect.top + cloudRect.height / 2)
+  const vehicleRight = point(
+    vehicleRect.right,
+    vehicleRect.top + vehicleRect.height / 2,
+  )
+
+  networkLayout.value = {
+    width: Math.round(stageRect.width * 10) / 10,
+    height: Math.round(stageRect.height * 10) / 10,
+    vehicleRoute:
+      `M ${vehicleTop.x} ${vehicleTop.y} V ${routeLeft.y} H ${routeLeft.x}`,
+    routeCall:
+      `M ${routeRight.x} ${routeRight.y} H ${callLeft.x}`,
+    callCloud:
+      `M ${callRight.x} ${callRight.y} H ${cloudTop.x} V ${cloudTop.y}`,
+    cloudVehicle:
+      `M ${cloudLeft.x} ${cloudLeft.y} H ${vehicleRight.x}`,
+  }
+}
+
+function scheduleNetworkLayout() {
+  window.cancelAnimationFrame(networkFrame)
+  networkFrame = window.requestAnimationFrame(updateNetworkLayout)
+}
+
+onMounted(async () => {
   loadDrivers()
   loadModels()
+  await nextTick()
+  scheduleNetworkLayout()
+  networkResizeObserver = new ResizeObserver(scheduleNetworkLayout)
+  ;[
+    flowStageRef.value,
+    routeNodeRef.value,
+    callNodeRef.value,
+    vehiclePanelRef.value,
+    cloudPanelRef.value,
+  ].forEach((element) => {
+    if (element) networkResizeObserver?.observe(element)
+  })
 })
 
 onBeforeUnmount(() => {
   runId += 1
+  window.cancelAnimationFrame(networkFrame)
+  networkResizeObserver?.disconnect()
 })
 </script>
 
@@ -241,7 +326,7 @@ onBeforeUnmount(() => {
   <section class="car-agent-workspace">
     <header class="agent-toolbar">
       <div class="owner-selector">
-        <span class="control-label">当前车辆</span>
+        <span class="control-label">选择车主</span>
         <el-select
           v-model="selectedDriverId"
           filterable
@@ -255,12 +340,29 @@ onBeforeUnmount(() => {
           <el-option
             v-for="driver in drivers"
             :key="driver.id"
-            :label="`${driver.name}｜${driver.vin}`"
+            :label="`${driver.name}｜${driver.vin}｜${driver.registration_city}`"
             :value="driver.id"
           >
-            <span>{{ driver.name }}</span>
-            <small>{{ driver.vin }}</small>
+            <span class="driver-option-copy">
+              {{ driver.name }}｜{{ driver.vin }}｜{{ driver.registration_city }}
+            </span>
           </el-option>
+        </el-select>
+      </div>
+      <div class="model-selector">
+        <span class="control-label">推理模型</span>
+        <el-select
+          v-model="selectedModelId"
+          :loading="modelLoading"
+          :disabled="isRunning || models.length === 0"
+          :placeholder="models.length ? '选择模型 ID' : '暂无可用模型'"
+        >
+          <el-option
+            v-for="model in models"
+            :key="model.id"
+            :label="model.model_id"
+            :value="model.model_id"
+          />
         </el-select>
       </div>
       <div class="flow-status">
@@ -275,8 +377,124 @@ onBeforeUnmount(() => {
       </el-tooltip>
     </header>
 
-    <div class="agent-grid" :class="`state-${state}`">
-      <article class="agent-panel vehicle-panel">
+    <div
+      ref="flowStageRef"
+      class="flow-stage"
+      :class="[`state-${state}`, `handoff-step-${handoffStep}`]"
+    >
+      <section class="a2a-center">
+        <div class="a2a-center-heading">
+          <el-icon><Connection /></el-icon>
+          <div>
+            <span>A2A ORCHESTRATION CENTER</span>
+            <h2>A2A 中心</h2>
+          </div>
+          <small>{{ FLOW_LABELS[state] }}</small>
+        </div>
+        <div class="a2a-nodes">
+          <div ref="routeNodeRef" class="a2a-node route-node">
+            <span>01</span>
+            <strong>A2A 路由</strong>
+            <small>ROUTING</small>
+          </div>
+          <div class="node-link" aria-hidden="true"></div>
+          <div ref="callNodeRef" class="a2a-node call-node">
+            <span>02</span>
+            <strong>A2A 调用</strong>
+            <small>INVOKE</small>
+          </div>
+        </div>
+
+        <svg class="mobile-network" viewBox="0 0 360 150" aria-hidden="true">
+          <defs>
+            <marker
+              id="mobile-flow-arrow"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
+              orient="auto"
+            >
+              <path d="M 0 0 L 7 3.5 L 0 7 Z" />
+            </marker>
+          </defs>
+          <path class="network-path link-vehicle-route" d="M 30 112 L 110 32" />
+          <path class="network-path link-route-call" d="M 134 32 H 226" />
+          <path class="network-path link-call-cloud" d="M 250 32 L 330 112" />
+          <path class="network-path link-cloud-vehicle" d="M 330 132 H 30" />
+          <circle v-if="handoffStep === 1" class="flow-dot" r="4">
+            <animateMotion dur="3s" repeatCount="indefinite" path="M 30 112 L 110 32" />
+          </circle>
+          <circle v-if="handoffStep === 2" class="flow-dot" r="4">
+            <animateMotion dur="3s" repeatCount="indefinite" path="M 134 32 H 226" />
+          </circle>
+          <circle v-if="handoffStep === 3" class="flow-dot" r="4">
+            <animateMotion dur="3s" repeatCount="indefinite" path="M 250 32 L 330 112" />
+          </circle>
+          <circle v-if="state === 'returning'" class="flow-dot" r="4">
+            <animateMotion dur="1s" repeatCount="indefinite" path="M 330 132 H 30" />
+          </circle>
+          <text x="30" y="104">车端</text>
+          <text x="110" y="22">路由</text>
+          <text x="250" y="22">调用</text>
+          <text x="330" y="104">云端</text>
+        </svg>
+      </section>
+
+      <svg
+        class="desktop-network"
+        :viewBox="`0 0 ${networkLayout.width} ${networkLayout.height}`"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <marker
+            id="desktop-flow-arrow"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+          >
+            <path d="M 0 0 L 7 3.5 L 0 7 Z" />
+          </marker>
+        </defs>
+        <path class="network-path link-vehicle-route" :d="networkLayout.vehicleRoute" />
+        <path class="network-path link-route-call" :d="networkLayout.routeCall" />
+        <path class="network-path link-call-cloud" :d="networkLayout.callCloud" />
+        <path class="network-path link-cloud-vehicle" :d="networkLayout.cloudVehicle" />
+        <circle v-if="handoffStep === 1" class="flow-dot" r="5">
+          <animateMotion
+            dur="3s"
+            repeatCount="indefinite"
+            :path="networkLayout.vehicleRoute"
+          />
+        </circle>
+        <circle v-if="handoffStep === 2" class="flow-dot" r="5">
+          <animateMotion
+            dur="3s"
+            repeatCount="indefinite"
+            :path="networkLayout.routeCall"
+          />
+        </circle>
+        <circle v-if="handoffStep === 3" class="flow-dot" r="5">
+          <animateMotion
+            dur="3s"
+            repeatCount="indefinite"
+            :path="networkLayout.callCloud"
+          />
+        </circle>
+        <circle v-if="state === 'returning'" class="flow-dot" r="5">
+          <animateMotion
+            dur="1s"
+            repeatCount="indefinite"
+            :path="networkLayout.cloudVehicle"
+          />
+        </circle>
+      </svg>
+
+      <div class="agent-grid">
+        <article ref="vehiclePanelRef" class="agent-panel vehicle-panel">
         <header class="panel-heading">
           <div class="agent-icon vehicle-icon"><el-icon><Cpu /></el-icon></div>
           <div>
@@ -299,26 +517,10 @@ onBeforeUnmount(() => {
             <span>VIN</span>
             <strong>{{ selectedDriver?.vin || '--' }}</strong>
           </div>
-        </div>
-
-        <div class="field-block">
-          <label>推理模型</label>
-          <el-select
-            v-model="selectedModelId"
-            :loading="modelLoading"
-            :disabled="isRunning"
-            placeholder="选择模型 ID"
-          >
-            <el-option
-              v-for="model in models"
-              :key="model.id"
-              :label="model.model_id"
-              :value="model.model_id"
-            />
-          </el-select>
-          <p v-if="!modelLoading && models.length === 0" class="field-warning">
-            暂无可用模型，请先在 VLM 总览中配置。
-          </p>
+          <div class="city-field">
+            <span>城市</span>
+            <strong>{{ selectedDriver?.registration_city || '--' }}</strong>
+          </div>
         </div>
 
         <div class="output-block">
@@ -366,41 +568,12 @@ onBeforeUnmount(() => {
         </div>
       </article>
 
-      <div class="a2a-lane">
-        <div class="a2a-badge">
-          <el-icon><Connection /></el-icon>
-          <strong>A2A</strong>
-          <span>AGENT LINK</span>
-        </div>
-        <svg class="desktop-flow" viewBox="0 0 150 520" aria-hidden="true">
-          <path class="flow-path forward-path" d="M 0 218 H 150" />
-          <path class="flow-path reverse-path" d="M 150 302 H 0" />
-          <circle class="flow-marker forward-marker" r="5">
-            <animateMotion dur="1s" repeatCount="indefinite" path="M 0 218 H 150" />
-          </circle>
-          <circle class="flow-marker reverse-marker" r="5">
-            <animateMotion dur="1s" repeatCount="indefinite" path="M 150 302 H 0" />
-          </circle>
-        </svg>
-        <svg class="mobile-flow" viewBox="0 0 320 96" aria-hidden="true">
-          <path class="flow-path forward-path" d="M 20 10 H 300" />
-          <path class="flow-path reverse-path" d="M 300 86 H 20" />
-          <circle class="flow-marker forward-marker" r="5">
-            <animateMotion dur="1s" repeatCount="indefinite" path="M 20 10 H 300" />
-          </circle>
-          <circle class="flow-marker reverse-marker" r="5">
-            <animateMotion dur="1s" repeatCount="indefinite" path="M 300 86 H 20" />
-          </circle>
-        </svg>
-        <span class="lane-caption">{{ FLOW_LABELS[state] }}</span>
-      </div>
-
-      <article class="agent-panel cloud-panel">
+      <article ref="cloudPanelRef" class="agent-panel cloud-panel">
         <header class="panel-heading">
           <div class="agent-icon cloud-icon"><el-icon><User /></el-icon></div>
           <div>
             <span>CLOUD STANDBY AGENT</span>
-            <h2>备车 Agent</h2>
+            <h2>云端 Agent</h2>
           </div>
           <el-tag type="warning" effect="plain" size="small">云端节点</el-tag>
         </header>
@@ -428,6 +601,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
       </article>
+      </div>
     </div>
   </section>
 </template>
@@ -442,7 +616,11 @@ onBeforeUnmount(() => {
   margin-bottom: 14px;
   padding: 10px 14px;
   display: grid;
-  grid-template-columns: minmax(280px, 460px) 1fr auto;
+  grid-template-columns:
+    minmax(380px, 1.35fr)
+    minmax(240px, 0.85fr)
+    minmax(200px, auto)
+    auto;
   align-items: center;
   gap: 18px;
   border: 1px solid var(--line);
@@ -450,15 +628,24 @@ onBeforeUnmount(() => {
   background: var(--surface);
 }
 
-.owner-selector {
+.owner-selector,
+.model-selector {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
 }
 
-.owner-selector :deep(.el-select) {
+.owner-selector :deep(.el-select),
+.model-selector :deep(.el-select) {
   width: 100%;
+}
+
+.driver-option-copy {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .control-label,
@@ -505,16 +692,143 @@ onBeforeUnmount(() => {
   background: var(--danger);
 }
 
-.agent-grid {
+.flow-stage {
+  min-width: 0;
+  position: relative;
+}
+
+.a2a-center {
+  min-height: 122px;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) auto minmax(210px, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  border: 1px solid rgba(49, 217, 208, 0.3);
+  border-top: 2px solid var(--cyan);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(49, 217, 208, 0.035), transparent 30% 70%, rgba(49, 217, 208, 0.035)),
+    rgba(13, 24, 25, 0.96);
+  overflow: hidden;
+}
+
+.a2a-center::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(49, 217, 208, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(49, 217, 208, 0.035) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+
+.a2a-center-heading,
+.a2a-nodes {
+  position: relative;
+  z-index: 4;
+}
+
+.a2a-center-heading {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(340px, 1fr) 150px minmax(340px, 1fr);
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+}
+
+.a2a-center-heading > .el-icon {
+  width: 36px;
+  height: 36px;
+  color: var(--cyan);
+  border: 1px solid rgba(49, 217, 208, 0.36);
+  border-radius: 4px;
+  background: rgba(49, 217, 208, 0.07);
+  font-size: 19px;
+}
+
+.a2a-center-heading span,
+.a2a-center-heading small,
+.a2a-node small {
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+}
+
+.a2a-center-heading h2 {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.a2a-center-heading > small {
+  grid-column: 2;
+  color: var(--cyan);
+}
+
+.a2a-nodes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 64px;
+}
+
+.a2a-node {
+  width: 142px;
+  height: 72px;
+  position: relative;
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: #0a1516;
+  text-align: center;
+  box-shadow: 0 0 0 5px rgba(49, 217, 208, 0.025);
+}
+
+.a2a-node > span {
+  position: absolute;
+  left: 8px;
+  top: 7px;
+  color: #53706c;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+}
+
+.a2a-node strong {
+  color: #d9e8e6;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.a2a-center > small {
+  position: relative;
+  z-index: 4;
+  justify-self: end;
+  color: #81928f;
+  font-size: 11px;
+  line-height: 1.55;
+  text-align: right;
+}
+
+.agent-grid {
+  min-width: 0;
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(340px, 1fr) minmax(340px, 1fr);
   align-items: stretch;
+  gap: 120px;
 }
 
 .agent-panel {
   min-width: 0;
   min-height: 620px;
+  position: relative;
+  z-index: 1;
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -582,18 +896,15 @@ onBeforeUnmount(() => {
   border-right: 1px solid var(--line);
 }
 
-.vehicle-profile > div:nth-child(2) {
+.vehicle-profile > div:nth-child(2n) {
   border-right: 0;
 }
 
-.vehicle-profile .vin-field {
-  grid-column: 1 / -1;
+.vehicle-profile > div:nth-child(n + 3) {
   border-top: 1px solid var(--line);
-  border-right: 0;
 }
 
 .vehicle-profile span,
-.field-block label,
 .persona span {
   display: block;
   margin-bottom: 6px;
@@ -609,20 +920,6 @@ onBeforeUnmount(() => {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.field-block {
-  padding: 14px 0 0;
-}
-
-.field-block :deep(.el-select) {
-  width: 100%;
-}
-
-.field-warning {
-  margin: 7px 0 0;
-  color: var(--orange);
-  font-size: 11px;
 }
 
 .persona {
@@ -730,97 +1027,53 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
-.a2a-lane {
-  min-height: 620px;
-  position: relative;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-
-.a2a-badge {
-  position: relative;
-  z-index: 2;
-  width: 72px;
-  height: 72px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  background: #0a1516;
-  box-shadow: 0 0 0 7px rgba(49, 217, 208, 0.035);
-}
-
-.a2a-badge .el-icon {
-  color: var(--cyan);
-}
-
-.a2a-badge strong {
-  margin-top: 3px;
-  color: #d9e8e6;
-  font-size: 12px;
-}
-
-.a2a-badge span {
-  color: var(--muted);
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 7px;
-}
-
-.desktop-flow {
+.desktop-network {
   position: absolute;
-  inset: 50% auto auto 0;
-  width: 150px;
-  height: 520px;
-  transform: translateY(-50%);
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
-.mobile-flow {
+.mobile-network {
   display: none;
 }
 
-.flow-path {
+.network-path {
   fill: none;
   stroke: rgba(131, 150, 148, 0.5);
-  stroke-width: 1.5;
-  stroke-dasharray: 6 7;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+  marker-end: url("#desktop-flow-arrow");
 }
 
-.flow-marker {
-  display: none;
+.desktop-network marker path,
+.mobile-network marker path {
+  fill: rgba(131, 150, 148, 0.8);
+}
+
+.flow-dot {
   fill: var(--cyan);
-  filter: drop-shadow(0 0 4px var(--cyan));
+  filter: drop-shadow(0 0 4px rgba(49, 217, 208, 0.9));
 }
 
-.state-handoff .forward-path,
-.state-returning .reverse-path {
+.handoff-step-1 .link-vehicle-route,
+.handoff-step-2 .link-route-call,
+.handoff-step-3 .link-call-cloud,
+.state-returning .link-cloud-vehicle {
   stroke: var(--cyan);
-  animation: dash-forward 1s linear infinite;
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 4px rgba(49, 217, 208, 0.7));
 }
 
-.state-handoff .forward-marker,
-.state-returning .reverse-marker {
-  display: block;
-}
-
-.state-returning .reverse-path {
-  animation-direction: reverse;
-}
-
-.lane-caption {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  top: calc(50% + 50px);
-  color: var(--muted);
-  font-size: 9px;
-  text-align: center;
-}
-
-@keyframes dash-forward {
-  to { stroke-dashoffset: -26; }
+.state-handoff .a2a-node,
+.state-cloud_running .call-node,
+.state-returning .a2a-node {
+  border-color: rgba(49, 217, 208, 0.65);
+  box-shadow: 0 0 16px rgba(49, 217, 208, 0.12);
 }
 
 @keyframes status-pulse {
@@ -829,15 +1082,24 @@ onBeforeUnmount(() => {
 
 @media (max-width: 1180px) {
   .agent-toolbar {
-    grid-template-columns: minmax(260px, 1fr) auto auto;
+    grid-template-columns:
+      minmax(240px, 1.25fr)
+      minmax(170px, 0.75fr)
+      auto
+      auto;
   }
 
   .agent-grid {
-    grid-template-columns: minmax(300px, 1fr) 116px minmax(300px, 1fr);
+    grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr);
+    gap: 96px;
   }
 
-  .desktop-flow {
-    width: 116px;
+  .a2a-center {
+    grid-template-columns: minmax(190px, 0.8fr) auto minmax(100px, 0.55fr);
+  }
+
+  .a2a-nodes {
+    gap: 54px;
   }
 }
 
@@ -850,39 +1112,54 @@ onBeforeUnmount(() => {
     grid-column: 1 / -1;
   }
 
+  .model-selector {
+    grid-column: 1 / -1;
+  }
+
   .flow-status {
     justify-content: flex-start;
   }
 
+  .a2a-center {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .a2a-center-heading {
+    justify-self: stretch;
+  }
+
   .agent-grid {
     grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
 
   .agent-panel {
     min-height: 580px;
   }
 
-  .a2a-lane {
-    min-height: 126px;
-  }
-
-  .desktop-flow {
+  .desktop-network {
     display: none;
   }
 
-  .mobile-flow {
-    width: min(100%, 420px);
+  .mobile-network {
+    width: min(100%, 440px);
+    height: auto;
+    position: relative;
+    z-index: 3;
     display: block;
+    justify-self: center;
+    overflow: visible;
   }
 
-  .a2a-badge {
-    width: 58px;
-    height: 58px;
+  .mobile-network .network-path {
+    marker-end: url("#mobile-flow-arrow");
   }
 
-  .lane-caption {
-    top: auto;
-    bottom: 2px;
+  .mobile-network text {
+    fill: var(--muted);
+    font-size: 9px;
+    text-anchor: middle;
   }
 }
 
@@ -891,13 +1168,27 @@ onBeforeUnmount(() => {
     gap: 10px;
   }
 
-  .owner-selector {
+  .owner-selector,
+  .model-selector {
     grid-template-columns: 1fr;
     gap: 6px;
   }
 
   .flow-status {
     flex-wrap: wrap;
+  }
+
+  .a2a-center {
+    padding: 14px;
+  }
+
+  .a2a-nodes {
+    width: 100%;
+    gap: 20px;
+  }
+
+  .a2a-node {
+    width: min(142px, calc((100vw - 78px) / 2));
   }
 
   .agent-panel {
@@ -921,12 +1212,11 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .status-light,
-  .flow-path {
+  .status-light {
     animation: none !important;
   }
 
-  .flow-marker {
+  .flow-dot {
     display: none !important;
   }
 }

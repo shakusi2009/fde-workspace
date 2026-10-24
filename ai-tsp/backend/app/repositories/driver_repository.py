@@ -130,7 +130,12 @@ class DriverRepository:
             with connection.cursor() as cursor:
                 cursor.execute(
                     f"""
-                        SELECT `id`, `name`, `vin`, `vehicle_model`
+                        SELECT
+                            `id`,
+                            `name`,
+                            `vin`,
+                            `vehicle_model`,
+                            `registration_city`
                         FROM `tsp_drivers`
                         {where_sql}
                         ORDER BY `id` DESC

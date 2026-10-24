@@ -75,6 +75,7 @@ def test_driver_options_searches_with_fixed_limit(monkeypatch) -> None:
                 "name": "张三",
                 "vin": "LGWEF6A50NH123456",
                 "vehicle_model": "坦克 500",
+                "registration_city": "北京",
                 "phone": "13800138000",
             }
         ]
@@ -96,6 +97,7 @@ def test_driver_options_searches_with_fixed_limit(monkeypatch) -> None:
             "name": "张三",
             "vin": "LGWEF6A50NH123456",
             "vehicle_model": "坦克 500",
+            "registration_city": "北京",
         }
     ]
 

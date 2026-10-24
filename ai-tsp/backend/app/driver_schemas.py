@@ -54,6 +54,7 @@ class DriverOption(BaseModel):
     name: str
     vin: str
     vehicle_model: str
+    registration_city: str
 
 
 class DriverPage(BaseModel):

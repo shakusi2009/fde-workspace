@@ -25,6 +25,7 @@ export type DriverOption = {
   name: string
   vin: string
   vehicle_model: string
+  registration_city: string
 }
 
 export type DriverPayload = {
