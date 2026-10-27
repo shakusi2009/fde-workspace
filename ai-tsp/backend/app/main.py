@@ -19,6 +19,12 @@ from app.repositories.driver_repository import (
     DriverVinConflictError,
 )
 from app.services.driver_service import driver_service
+from app.services.weather_service import (
+    WeatherCityNotFoundError,
+    WeatherUpstreamError,
+    weather_service,
+)
+from app.weather_schemas import CityWeather
 
 
 settings = get_settings()
@@ -69,6 +75,18 @@ def list_driver_options(
         return driver_service.list_driver_options(keyword=keyword)
     except DriverRepositoryError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get(f"{settings.api_prefix}/weather", response_model=CityWeather)
+def get_city_weather(
+    city: str = Query(min_length=2, max_length=100),
+) -> CityWeather:
+    try:
+        return weather_service.get_weather(city)
+    except WeatherCityNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except WeatherUpstreamError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.post(

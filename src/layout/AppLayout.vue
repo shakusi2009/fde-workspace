@@ -92,21 +92,6 @@ async function logout() {
             <template #title>工作台</template>
           </el-menu-item>
 
-          <el-sub-menu v-if="auth.can('account_center')" index="account">
-            <template #title>
-              <el-icon><Lock /></el-icon>
-              <span>账号中心</span>
-            </template>
-            <el-menu-item index="/account/users">
-              <el-icon><User /></el-icon>
-              <template #title>用户管理</template>
-            </el-menu-item>
-            <el-menu-item index="/account/roles">
-              <el-icon><Avatar /></el-icon>
-              <template #title>角色管理</template>
-            </el-menu-item>
-          </el-sub-menu>
-
           <el-sub-menu index="vlm">
             <template #title>
               <el-icon><DataAnalysis /></el-icon>
@@ -140,6 +125,21 @@ async function logout() {
               <template #title>基础数据管理</template>
             </el-menu-item>
           </el-sub-menu>
+
+          <el-sub-menu v-if="auth.can('account_center')" index="account">
+            <template #title>
+              <el-icon><Lock /></el-icon>
+              <span>权限管理</span>
+            </template>
+            <el-menu-item index="/account/users">
+              <el-icon><User /></el-icon>
+              <template #title>用户管理</template>
+            </el-menu-item>
+            <el-menu-item index="/account/roles">
+              <el-icon><Avatar /></el-icon>
+              <template #title>角色管理</template>
+            </el-menu-item>
+          </el-sub-menu>
         </el-menu>
       </el-scrollbar>
 
@@ -167,20 +167,26 @@ async function logout() {
       </div>
       <el-menu :default-active="activeMenu" router @select="mobileNav = false">
         <el-menu-item index="/"><el-icon><Grid /></el-icon><span>工作台</span></el-menu-item>
-        <el-menu-item v-if="auth.can('account_center')" index="/account/users">
-          <el-icon><User /></el-icon><span>用户管理</span>
-        </el-menu-item>
-        <el-menu-item v-if="auth.can('account_center')" index="/account/roles">
-          <el-icon><Avatar /></el-icon><span>角色管理</span>
-        </el-menu-item>
-        <el-menu-item index="/vlm/overview"><el-icon><DataAnalysis /></el-icon><span>VLM 总览</span></el-menu-item>
-        <el-menu-item index="/vlm/tasks"><el-icon><List /></el-icon><span>打标任务</span></el-menu-item>
-        <el-menu-item index="/vlm/prompts"><el-icon><Document /></el-icon><span>提示词管理</span></el-menu-item>
+        <el-sub-menu index="mobile-vlm">
+          <template #title><el-icon><DataAnalysis /></el-icon><span>智驾 VLM 业务</span></template>
+          <el-menu-item index="/vlm/overview"><el-icon><DataAnalysis /></el-icon><span>VLM 总览</span></el-menu-item>
+          <el-menu-item index="/vlm/tasks"><el-icon><List /></el-icon><span>打标任务</span></el-menu-item>
+          <el-menu-item index="/vlm/prompts"><el-icon><Document /></el-icon><span>提示词管理</span></el-menu-item>
+        </el-sub-menu>
         <el-sub-menu v-if="auth.can('agent_center')" index="mobile-agents">
           <template #title><el-icon><MagicStick /></el-icon><span>车联AI业务</span></template>
           <el-menu-item index="/agents"><el-icon><Cpu /></el-icon><span>端云Agent</span></el-menu-item>
           <el-menu-item index="/agents/base-data">
             <el-icon><Files /></el-icon><span>基础数据管理</span>
+          </el-menu-item>
+        </el-sub-menu>
+        <el-sub-menu v-if="auth.can('account_center')" index="mobile-account">
+          <template #title><el-icon><Lock /></el-icon><span>权限管理</span></template>
+          <el-menu-item index="/account/users">
+            <el-icon><User /></el-icon><span>用户管理</span>
+          </el-menu-item>
+          <el-menu-item index="/account/roles">
+            <el-icon><Avatar /></el-icon><span>角色管理</span>
           </el-menu-item>
         </el-sub-menu>
       </el-menu>

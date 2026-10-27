@@ -38,6 +38,23 @@ export type DriverPayload = {
   registration_date: string
 }
 
+export type CityWeather = {
+  city: string
+  date: string
+  current_temperature: number
+  current_humidity: number
+  current_weather: string
+  max_temperature: number
+  min_temperature: number
+  daily_weather: string
+  snowfall_cm: number
+  rain_mm: number
+  precipitation_probability: number
+  freeze_warning: string | null
+  recommendation: string
+  weather_log: string
+}
+
 export function getDrivers(page = 1, keyword = '') {
   const params = new URLSearchParams({
     page: String(page),
@@ -49,6 +66,11 @@ export function getDrivers(page = 1, keyword = '') {
 export function getDriverOptions(keyword = '') {
   const params = new URLSearchParams({ keyword })
   return api<DriverOption[]>(`/agent-data/drivers/options?${params}`)
+}
+
+export function getCityWeather(city: string) {
+  const params = new URLSearchParams({ city })
+  return api<CityWeather>(`/agent-data/weather?${params}`)
 }
 
 export function createDriver(payload: DriverPayload) {

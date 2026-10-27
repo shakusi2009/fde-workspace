@@ -9,7 +9,9 @@ import {
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import {
+  getCityWeather,
   getDriverOptions,
+  type CityWeather,
   type DriverOption,
 } from '@/services/agentData'
 import {
@@ -29,7 +31,7 @@ type FlowState =
 type LogEntry = {
   time: string
   message: string
-  tone?: 'critical'
+  tone?: 'critical' | 'bright' | 'success'
 }
 
 const FLOW_LABELS: Record<FlowState, string> = {
@@ -167,10 +169,12 @@ async function sendFromVehicle() {
   const currentRun = ++runId
   state.value = 'vehicle_running'
   vehicleOutput.value = ''
-  addVehicleLog(`已接收车主指令：${input}`)
+  addVehicleLog(`已接收车主指令：${input}`, 'critical')
 
   if (!(await waitForNextLog(currentRun))) return
-  addVehicleLog(`加载车辆上下文：${driver.vehicle_model} / ${driver.vin}`)
+  addVehicleLog(
+    `收集车主信息：${driver.name}｜${driver.vehicle_model}｜${driver.registration_city}`,
+  )
 
   if (!(await waitForNextLog(currentRun))) return
   addVehicleLog('理解车主意图：基于车主习惯进行备车')
@@ -185,35 +189,57 @@ async function sendFromVehicle() {
   }
   handoffStep.value = 0
   state.value = 'cloud_running'
-  addCloudLog(`收到来自 ${driver.name} 车辆的 A2A 请求`, 'critical')
+  addCloudLog(
+    `收到来自 ${driver.name} 车辆的 A2A 请求，车主所在城市：${driver.registration_city}`,
+    'critical',
+  )
 
-  const cloudMessages = [
-    `云端 Agent 正在分析 ${driver.vehicle_model} 的任务上下文`,
-    '查询车主当前季节习惯的温度：22度',
-    '联网查询当前所在城市 北京 天气',
-    '今天气温-1度，有霜冻。需要：除冰除霜、暖风预热',
-    '个性化备车指令已完成',
-    '备车指令已回传车端',
+  const contextMessages = [
+    `云端 Agent 正在分析 ${driver.name}车主 的任务上下文`,
   ]
-  for (const message of cloudMessages) {
+  for (const message of contextMessages) {
     if (!(await waitForNextLog(currentRun))) return
     addCloudLog(message)
   }
 
   if (!(await waitForNextLog(currentRun))) return
+  addCloudLog(`联网查询当前所在城市 ${driver.registration_city} 天气`)
+
+  let weather: CityWeather
+  try {
+    weather = await getCityWeather(driver.registration_city)
+  } catch (error) {
+    if (currentRun !== runId) return
+    const message = error instanceof Error ? error.message : '真实天气查询失败'
+    addCloudLog(`真实天气查询失败：${message}`, 'critical')
+    state.value = 'failed'
+    ElMessage.error(message)
+    return
+  }
+  if (currentRun !== runId) return
+
+  if (!(await waitForNextLog(currentRun))) return
+  addCloudLog(weather.weather_log)
+
+  if (!(await waitForNextLog(currentRun))) return
+  addCloudLog(weather.recommendation, 'bright')
+
+  if (!(await waitForNextLog(currentRun))) return
+  addCloudLog('个性化备车指令已完成')
+
+  if (!(await waitForNextLog(currentRun))) return
+  addCloudLog('备车指令已回传车端', 'success')
   state.value = 'returning'
 
   if (!(await waitForNextLog(currentRun))) return
   state.value = 'vehicle_running'
-  addVehicleLog(
-    '已接收云端协同结果：温度设置22度；打开除冰除霜；打开暖风',
-    'critical',
-  )
-  vehicleOutput.value = '备车协同结果已接收，正在下发车辆执行。'
+  const vehicleCommand = `接受到云端指令：${weather.recommendation}`
+  addVehicleLog(vehicleCommand, 'success')
+  vehicleOutput.value = vehicleCommand
 
   if (!(await waitForNextLog(currentRun))) return
-  addVehicleLog('已下发车端执行', 'critical')
-  vehicleOutput.value = '备车指令已下发：温度22度、除冰除霜、暖风预热。'
+  addVehicleLog('指令已下发车端，完成', 'success')
+  vehicleOutput.value = '指令已下发车端，完成'
   state.value = 'completed'
 }
 
@@ -535,7 +561,7 @@ onBeforeUnmount(() => {
             <div
               v-for="(entry, index) in vehicleLogs"
               :key="`${entry.time}-${index}`"
-              :class="{ critical: entry.tone === 'critical' }"
+              :class="entry.tone"
             >
               <time>{{ entry.time }}</time>
               <span>{{ entry.message }}</span>
@@ -592,7 +618,7 @@ onBeforeUnmount(() => {
             <div
               v-for="(entry, index) in cloudLogs"
               :key="`${entry.time}-${index}`"
-              :class="{ critical: entry.tone === 'critical' }"
+              :class="entry.tone"
             >
               <time>{{ entry.time }}</time>
               <span>{{ entry.message }}</span>
@@ -1004,6 +1030,18 @@ onBeforeUnmount(() => {
 
 .log-stream div.critical span {
   color: var(--danger);
+}
+
+.log-stream div.bright span {
+  color: #f3f7f6;
+}
+
+.log-stream div.success span {
+  color: var(--green);
+}
+
+.log-stream span {
+  white-space: pre-wrap;
 }
 
 .log-stream time {

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "defaultActionId": "web",
+  "actions": [
+    {
+      "id": "web",
+      "name": "Stephen 开发平台",
+      "command": "npm run dev",
+      "cwd": ".",
+      "background": true,
+      "source": "agent",
+      "readiness": {
+        "outputPatterns": [
+          "Local:"
+        ],
+        "timeoutMs": 60000
+      },
+      "open": {
+        "type": "preview",
+        "url": "http://localhost:5173/agents",
+        "urlFromOutput": true
+      }
+    }
+  ]
+}
