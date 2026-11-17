@@ -12,7 +12,7 @@ from app.config import Settings, get_settings
 PUBLIC_ENDPOINT = "tos-cn-beijing.volces.com"
 PRIVATE_ENDPOINT = "tos-cn-beijing.ivolces.com"
 REGION = "cn-beijing"
-SIGNED_URL_EXPIRES = 3600
+SIGNED_URL_EXPIRES = 86400  # 24 hours
 BUCKET_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$")
 
 

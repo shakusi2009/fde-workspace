@@ -27,6 +27,9 @@ const app = express()
 const port = Number(process.env.PORT ?? 3001)
 const vlmServiceUrl = process.env.VLM_SERVICE_URL ?? 'http://127.0.0.1:8001'
 const tspServiceUrl = process.env.TSP_SERVICE_URL ?? 'http://127.0.0.1:8002'
+const agentServiceUrl = process.env.AGENT_SERVICE_URL ?? 'http://127.0.0.1:8003'
+const marketingServiceUrl = process.env.MARKETING_SERVICE_URL
+  ?? 'http://127.0.0.1:8004'
 const sessions = new Map<string, SessionUser>()
 const captchas = new Map<string, { code: string; expiresAt: number }>()
 
@@ -48,12 +51,17 @@ app.use('/api/vlm', (req, res, next) => {
         ? req.body.model_id.trim()
         : ''
       const model = modelId
-        ? db.prepare('SELECT id FROM vlm_models WHERE model_id = ?').get(modelId)
+        ? db.prepare(`
+            SELECT id, model_name
+            FROM vlm_models
+            WHERE model_id = ?
+          `).get(modelId) as { id: number; model_name: string } | undefined
         : undefined
       if (!model) {
         res.status(400).json({ message: '请选择模型管理中存在的模型 ID' })
         return
       }
+      req.body = { ...req.body, model_name: model.model_name }
     }
 
     const target = new URL(`/api/vlm${req.url}`, vlmServiceUrl)
@@ -106,6 +114,70 @@ app.use(
     } catch {
       res.status(503).json({
         message: '基础数据服务暂不可用，请确认 Python 服务已启动',
+      })
+    }
+  },
+)
+
+app.use(
+  '/api/vehicle-agent',
+  auth,
+  requirePermission('agent_center'),
+  async (req, res) => {
+    try {
+      const target = new URL(
+        `/api/vehicle-agent${req.url}`,
+        agentServiceUrl,
+      )
+      const response = await fetch(target, {
+        method: req.method,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        body: req.method === 'GET' || req.method === 'HEAD'
+          ? undefined
+          : JSON.stringify(req.body),
+      })
+      const body = await response.text()
+      res.status(response.status)
+      res.type(response.headers.get('content-type') ?? 'application/json')
+      res.send(body)
+    } catch {
+      res.status(503).json({
+        message: '车端 Agent 服务暂不可用，请确认 Python 服务已启动',
+      })
+    }
+  },
+)
+
+app.use(
+  '/api/marketing-ai',
+  auth,
+  requirePermission('agent_center'),
+  async (req, res) => {
+    try {
+      const target = new URL(
+        `/api/marketing-ai${req.url}`,
+        marketingServiceUrl,
+      )
+      const response = await fetch(target, {
+        method: req.method,
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        body: req.method === 'GET' || req.method === 'HEAD'
+          ? undefined
+          : JSON.stringify(req.body),
+      })
+      const body = await response.text()
+      res.status(response.status)
+      res.type(response.headers.get('content-type') ?? 'application/json')
+      res.send(body)
+    } catch {
+      res.status(503).json({
+        message: '营销 AI 服务暂不可用，请确认 Python 服务已启动',
       })
     }
   },
@@ -363,9 +435,16 @@ function parseModelId(value: unknown): { modelId?: string; error?: string } {
   return { modelId }
 }
 
+function parseModelName(value: unknown): { modelName?: string; error?: string } {
+  const modelName = typeof value === 'string' ? value.trim() : ''
+  if (!modelName) return { error: '请输入模型名称' }
+  if (modelName.length > 255) return { error: '模型名称不能超过 255 个字符' }
+  return { modelName }
+}
+
 app.get('/api/vlm-models', auth, (_req, res) => {
   const models = db.prepare(`
-    SELECT id, model_id, created_at, updated_at
+    SELECT id, model_name, model_id, created_at, updated_at
     FROM vlm_models
     ORDER BY id ASC
   `).all()
@@ -373,17 +452,18 @@ app.get('/api/vlm-models', auth, (_req, res) => {
 })
 
 app.post('/api/vlm-models', auth, (req, res) => {
-  const parsed = parseModelId(req.body?.model_id)
-  if (!parsed.modelId) {
-    res.status(400).json({ message: parsed.error })
+  const parsedName = parseModelName(req.body?.model_name)
+  const parsedId = parseModelId(req.body?.model_id)
+  if (!parsedName.modelName || !parsedId.modelId) {
+    res.status(400).json({ message: parsedName.error ?? parsedId.error })
     return
   }
 
   try {
     const result = db.prepare(`
-      INSERT INTO vlm_models (model_id)
-      VALUES (?)
-    `).run(parsed.modelId)
+      INSERT INTO vlm_models (model_name, model_id)
+      VALUES (?, ?)
+    `).run(parsedName.modelName, parsedId.modelId)
     res.status(201).json({
       id: Number(result.lastInsertRowid),
       message: '模型创建成功',
@@ -398,22 +478,23 @@ app.post('/api/vlm-models', auth, (req, res) => {
 
 app.put('/api/vlm-models/:id', auth, (req, res) => {
   const id = Number(req.params.id)
-  const parsed = parseModelId(req.body?.model_id)
+  const parsedName = parseModelName(req.body?.model_name)
+  const parsedId = parseModelId(req.body?.model_id)
   if (!Number.isInteger(id) || id <= 0) {
     res.status(400).json({ message: '模型记录 ID 无效' })
     return
   }
-  if (!parsed.modelId) {
-    res.status(400).json({ message: parsed.error })
+  if (!parsedName.modelName || !parsedId.modelId) {
+    res.status(400).json({ message: parsedName.error ?? parsedId.error })
     return
   }
 
   try {
     const result = db.prepare(`
       UPDATE vlm_models
-      SET model_id = ?, updated_at = CURRENT_TIMESTAMP
+      SET model_name = ?, model_id = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(parsed.modelId, id)
+    `).run(parsedName.modelName, parsedId.modelId, id)
     if (!result.changes) {
       res.status(404).json({ message: '模型不存在' })
       return

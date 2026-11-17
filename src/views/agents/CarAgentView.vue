@@ -2,10 +2,10 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   ArrowRight,
+  Cloudy,
   Connection,
   Cpu,
   Refresh,
-  User,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import {
@@ -18,6 +18,7 @@ import {
   getVlmModels,
   type VlmModel,
 } from '@/services/vlm'
+import { getVehicleClimateSetting } from '@/services/vehicleClimate'
 
 type FlowState =
   | 'idle'
@@ -225,6 +226,14 @@ async function sendFromVehicle() {
   addCloudLog(weather.recommendation, 'bright')
 
   if (!(await waitForNextLog(currentRun))) return
+  const climateSetting = getVehicleClimateSetting(weather.current_temperature)
+  addCloudLog(
+    `根据 ${driver.name} 的用车习惯，当前空调设置为 `
+      + `${climateSetting.temperature} 度（${climateSetting.mode}）`,
+    'bright',
+  )
+
+  if (!(await waitForNextLog(currentRun))) return
   addCloudLog('个性化备车指令已完成')
 
   if (!(await waitForNextLog(currentRun))) return
@@ -233,7 +242,11 @@ async function sendFromVehicle() {
 
   if (!(await waitForNextLog(currentRun))) return
   state.value = 'vehicle_running'
-  const vehicleCommand = `接受到云端指令：${weather.recommendation}`
+  const vehicleCommand = (
+    `接受到云端指令：${weather.recommendation}；`
+    + `空调设置温度：${climateSetting.temperature} 度`
+    + `（${climateSetting.mode}）`
+  )
   addVehicleLog(vehicleCommand, 'success')
   vehicleOutput.value = vehicleCommand
 
@@ -596,7 +609,7 @@ onBeforeUnmount(() => {
 
       <article ref="cloudPanelRef" class="agent-panel cloud-panel">
         <header class="panel-heading">
-          <div class="agent-icon cloud-icon"><el-icon><User /></el-icon></div>
+          <div class="agent-icon cloud-icon"><el-icon><Cloudy /></el-icon></div>
           <div>
             <span>CLOUD STANDBY AGENT</span>
             <h2>云端 Agent</h2>

@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from app.config import get_settings
 from app.repositories.vlm_task_repository import VlmTaskRepository
@@ -114,7 +114,13 @@ class VlmService:
             **self.repository.get_task_execution_context(task_id)
         )
 
-    def execute_task(self, task_id: int, model_id: str) -> VlmTaskItem:
+    def execute_task(
+        self,
+        task_id: int,
+        model_id: str,
+        model_name: str,
+    ) -> VlmTaskItem:
+        start_time = datetime.now()
         context = self.get_task_execution_context(task_id)
         try:
             result = self.agent_service.execute(
@@ -122,8 +128,10 @@ class VlmService:
                 task_input=context.task_input,
                 model_id=model_id,
             )
+            end_time = datetime.now()
             row = self.repository.create_task_item(
                 task_id=task_id,
+                model_name=model_name,
                 model_id=model_id,
                 task_input=context.task_input,
                 total_tokens=result.total_tokens,
@@ -131,11 +139,15 @@ class VlmService:
                 output_tokens=result.output_tokens,
                 cached_tokens=result.cached_tokens,
                 task_status=0,
+                start_time=start_time,
+                end_time=end_time,
                 output_text=result.output_text,
             )
         except AgentExecutionError as exc:
+            end_time = datetime.now()
             row = self.repository.create_task_item(
                 task_id=task_id,
+                model_name=model_name,
                 model_id=model_id,
                 task_input=context.task_input,
                 total_tokens=None,
@@ -143,6 +155,8 @@ class VlmService:
                 output_tokens=None,
                 cached_tokens=None,
                 task_status=1,
+                start_time=start_time,
+                end_time=end_time,
                 output_text=str(exc),
             )
         return VlmTaskItem(**row)

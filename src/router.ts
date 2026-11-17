@@ -68,10 +68,24 @@ const router = createRouter({
           meta: { title: '端云Agent', permission: 'agent_center' },
         },
         {
+          path: 'agents/vehicle',
+          name: 'vehicle-agent',
+          component: () => import('../ai-agent/frontend/VehicleAgentView.vue'),
+          meta: { title: '车端Agent', permission: 'agent_center' },
+        },
+        {
           path: 'agents/base-data',
           name: 'agent-base-data',
           component: () => import('@/views/agents/AgentBaseDataView.vue'),
           meta: { title: '基础数据管理', permission: 'agent_center' },
+        },
+        {
+          path: 'agents/marketing/public-insight',
+          name: 'public-insight-agent',
+          component: () => import(
+            '../ai-marketing/frontend/PublicInsightAgentView.vue'
+          ),
+          meta: { title: '公域洞察Agent', permission: 'agent_center' },
         },
       ],
     },

@@ -125,7 +125,11 @@ def execute_task(
     payload: VlmTaskExecuteRequest,
 ) -> VlmTaskItem:
     try:
-        return vlm_service.execute_task(task_id, payload.model_id)
+        return vlm_service.execute_task(
+            task_id,
+            payload.model_id,
+            payload.model_name,
+        )
     except VlmTaskNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except VlmTaskExecutionUnavailableError as exc:

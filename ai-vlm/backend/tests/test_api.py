@@ -228,6 +228,7 @@ def test_task_item_list_maps_all_database_fields(monkeypatch) -> None:
                 {
                     "id": 31,
                     "task_id": 12,
+                    "model_name": "测试模型",
                     "model_id": "ep-test-model",
                     "task_input": "https://example.com/video.mp4",
                     "total_tokens": 1200,
@@ -235,11 +236,14 @@ def test_task_item_list_maps_all_database_fields(monkeypatch) -> None:
                     "output_tokens": 400,
                     "cached_tokens": 100,
                     "task_status": 0,
+                    "start_time": datetime(2026, 11, 16, 10, 0, 1),
+                    "end_time": datetime(2026, 11, 16, 10, 0, 9),
                     "output_text": '{"is_lane_change": true}',
                 },
                 {
                     "id": 30,
                     "task_id": 12,
+                    "model_name": "测试模型",
                     "model_id": "ep-test-model",
                     "task_input": "tos://bucket/object.mp4",
                     "total_tokens": None,
@@ -247,6 +251,8 @@ def test_task_item_list_maps_all_database_fields(monkeypatch) -> None:
                     "output_tokens": None,
                     "cached_tokens": None,
                     "task_status": None,
+                    "start_time": None,
+                    "end_time": None,
                     "output_text": None,
                 },
             ],
@@ -267,6 +273,7 @@ def test_task_item_list_maps_all_database_fields(monkeypatch) -> None:
             {
                 "id": 31,
                 "task_id": 12,
+                "model_name": "测试模型",
                 "model_id": "ep-test-model",
                 "task_input": "https://example.com/video.mp4",
                 "total_tokens": 1200,
@@ -274,11 +281,14 @@ def test_task_item_list_maps_all_database_fields(monkeypatch) -> None:
                 "output_tokens": 400,
                 "cached_tokens": 100,
                 "task_status": 0,
+                "start_time": "2026-11-16T10:00:01",
+                "end_time": "2026-11-16T10:00:09",
                 "output_text": '{"is_lane_change": true}',
             },
             {
                 "id": 30,
                 "task_id": 12,
+                "model_name": "测试模型",
                 "model_id": "ep-test-model",
                 "task_input": "tos://bucket/object.mp4",
                 "total_tokens": None,
@@ -286,6 +296,8 @@ def test_task_item_list_maps_all_database_fields(monkeypatch) -> None:
                 "output_tokens": None,
                 "cached_tokens": None,
                 "task_status": None,
+                "start_time": None,
+                "end_time": None,
                 "output_text": None,
             },
         ],
@@ -358,12 +370,14 @@ def test_task_execution_context_maps_parent_and_prompt(monkeypatch) -> None:
 
 
 def test_execute_task_returns_persisted_item(monkeypatch) -> None:
-    def execute_task(task_id: int, model_id: str):
+    def execute_task(task_id: int, model_id: str, model_name: str):
         assert task_id == 12
         assert model_id == "ep-test-model"
+        assert model_name == "测试模型"
         return VlmTaskItem(
             id=32,
             task_id=12,
+            model_name="测试模型",
             model_id="ep-test-model",
             task_input="分析该视频",
             total_tokens=150,
@@ -371,6 +385,8 @@ def test_execute_task_returns_persisted_item(monkeypatch) -> None:
             output_tokens=30,
             cached_tokens=20,
             task_status=0,
+            start_time=datetime(2026, 11, 16, 10, 0, 1),
+            end_time=datetime(2026, 11, 16, 10, 0, 9),
             output_text='{"is_lane_change": true}',
         )
 
@@ -382,18 +398,27 @@ def test_execute_task_returns_persisted_item(monkeypatch) -> None:
     )
     response = client.post(
         "/api/vlm/tasks/12/executions",
-        json={"model_id": "ep-test-model"},
+        json={
+            "model_id": "ep-test-model",
+            "model_name": "测试模型",
+        },
     )
 
     assert response.status_code == 201
     assert response.json()["id"] == 32
     assert response.json()["task_status"] == 0
     assert response.json()["total_tokens"] == 150
+    assert response.json()["start_time"] == "2026-11-16T10:00:01"
+    assert response.json()["end_time"] == "2026-11-16T10:00:09"
     assert response.json()["output_text"] == '{"is_lane_change": true}'
 
 
 def test_execute_task_reports_missing_agent_configuration(monkeypatch) -> None:
-    def execute_task(_task_id: int, _model_id: str):
+    def execute_task(
+        _task_id: int,
+        _model_id: str,
+        _model_name: str,
+    ):
         raise AgentConfigurationError("大模型 Agent 配置不完整")
 
     monkeypatch.setattr(
@@ -404,7 +429,10 @@ def test_execute_task_reports_missing_agent_configuration(monkeypatch) -> None:
     )
     response = client.post(
         "/api/vlm/tasks/12/executions",
-        json={"model_id": "ep-test-model"},
+        json={
+            "model_id": "ep-test-model",
+            "model_name": "测试模型",
+        },
     )
 
     assert response.status_code == 503
@@ -449,11 +477,18 @@ def test_execute_task_persists_specific_agent_error(monkeypatch) -> None:
     )
     response = client.post(
         "/api/vlm/tasks/12/executions",
-        json={"model_id": "ep-test-model"},
+        json={
+            "model_id": "ep-test-model",
+            "model_name": "测试模型",
+        },
     )
 
     assert response.status_code == 201
+    assert captured["model_name"] == "测试模型"
     assert captured["task_status"] == 1
+    assert isinstance(captured["start_time"], datetime)
+    assert isinstance(captured["end_time"], datetime)
+    assert captured["start_time"] <= captured["end_time"]
     assert captured["output_text"] == (
         "大模型 Agent 执行失败（RuntimeError）：模型不存在"
     )

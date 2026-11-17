@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Any, Optional
+from urllib.parse import urlsplit
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, MessagesState, StateGraph
 
 from app.config import Settings, get_settings
+
+
+MODEL_REQUEST_TIMEOUT_SECONDS = 1800
 
 
 class AgentError(RuntimeError):
@@ -75,6 +80,39 @@ def _content_to_text(content: Any) -> str:
     return json.dumps(content, ensure_ascii=False)
 
 
+HTTP_URL_PATTERN = re.compile(r"https?://[^\s`<>\"，。；：！？]+", re.IGNORECASE)
+
+
+def _extract_video_url(task_input: str) -> str | None:
+    for match in HTTP_URL_PATTERN.finditer(task_input):
+        candidate = match.group(0).rstrip("'.,;:!?)]}")
+        try:
+            parsed = urlsplit(candidate)
+        except ValueError:
+            continue
+        if parsed.netloc and parsed.path.lower().endswith(".mp4"):
+            return candidate
+    return None
+
+
+def _build_user_content(task_input: str) -> str | list[dict[str, Any]]:
+    video_url = _extract_video_url(task_input)
+    if video_url is None:
+        print('-----------------102---------------')
+        print(task_input)
+        return task_input
+
+    print('-----------------103---------------')
+    print(task_input)
+    return [
+        {"type": "text", "text": task_input},
+        {
+            "type": "video_url",
+            "video_url": {"url": video_url},
+        },
+    ]
+
+
 class VlmAgentService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -94,6 +132,7 @@ class VlmAgentService:
             api_key=self.settings.model_agent_api_key,
             base_url=self.settings.model_agent_base_url,
             temperature=0,
+            timeout=MODEL_REQUEST_TIMEOUT_SECONDS,
         )
 
         def call_model(state: MessagesState) -> dict[str, list[AIMessage]]:
@@ -109,11 +148,14 @@ class VlmAgentService:
         graph = graph_builder.compile()
 
         try:
+            print('-----------------104---------------')
+            new_input = _build_user_content(task_input)
+            print(new_input)
             result = graph.invoke(
                 {
                     "messages": [
                         SystemMessage(content=prompt_content),
-                        HumanMessage(content=task_input),
+                        HumanMessage(content=new_input),
                     ]
                 }
             )

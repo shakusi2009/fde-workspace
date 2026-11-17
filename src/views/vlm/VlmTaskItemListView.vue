@@ -51,6 +51,19 @@ function formatTokens(value: number | null) {
   return value === null ? '--' : value.toLocaleString()
 }
 
+function formatDateTime(value: string | null) {
+  if (!value) return '--'
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(new Date(value))
+}
+
 async function openExecution() {
   executionDialogVisible.value = true
   contextLoading.value = true
@@ -156,7 +169,7 @@ onMounted(() => load())
     >
       <el-table-column prop="id" label="明细 ID" width="92" align="center" />
       <el-table-column prop="task_id" label="主任务 ID" width="104" align="center" />
-      <el-table-column prop="model_id" label="模型 ID" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="model_name" label="模型名称" min-width="180" show-overflow-tooltip />
       <el-table-column prop="task_input" label="推理输入" min-width="280" show-overflow-tooltip />
       <el-table-column label="总 Tokens" min-width="130" align="right">
         <template #default="{ row }">{{ formatTokens(row.total_tokens) }}</template>
@@ -176,6 +189,12 @@ onMounted(() => load())
             {{ statusLabel(row.task_status) }}
           </el-tag>
         </template>
+      </el-table-column>
+      <el-table-column label="开始时间" min-width="180">
+        <template #default="{ row }">{{ formatDateTime(row.start_time) }}</template>
+      </el-table-column>
+      <el-table-column label="结束时间" min-width="180">
+        <template #default="{ row }">{{ formatDateTime(row.end_time) }}</template>
       </el-table-column>
       <el-table-column prop="output_text" label="输出日志" min-width="320" show-overflow-tooltip>
         <template #default="{ row }">{{ row.output_text || '--' }}</template>
@@ -251,7 +270,7 @@ onMounted(() => load())
             <el-option
               v-for="model in models"
               :key="model.id"
-              :label="model.model_id"
+              :label="`${model.model_name} ｜ ${model.model_id}`"
               :value="model.model_id"
             />
           </el-select>

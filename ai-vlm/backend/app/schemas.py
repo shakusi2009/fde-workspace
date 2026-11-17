@@ -44,6 +44,7 @@ class VlmTaskPage(BaseModel):
 class VlmTaskItem(BaseModel):
     id: int
     task_id: int
+    model_name: str
     model_id: str
     task_input: str
     total_tokens: Optional[int] = None
@@ -51,6 +52,8 @@ class VlmTaskItem(BaseModel):
     output_tokens: Optional[int] = None
     cached_tokens: Optional[int] = None
     task_status: Optional[int] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
     output_text: Optional[str] = None
 
 
@@ -72,10 +75,11 @@ class VlmTaskExecutionContext(BaseModel):
 
 class VlmTaskExecuteRequest(BaseModel):
     model_id: str = Field(min_length=1, max_length=32)
+    model_name: str = Field(min_length=1, max_length=255)
 
-    @field_validator("model_id", mode="before")
+    @field_validator("model_id", "model_name", mode="before")
     @classmethod
-    def strip_model_id(cls, value: object) -> object:
+    def strip_model(cls, value: object) -> object:
         return value.strip() if isinstance(value, str) else value
 
 

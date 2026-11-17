@@ -39,8 +39,12 @@ const modelSaving = ref(false)
 const editingModelId = ref<number>()
 const modelFormRef = ref<FormInstance>()
 const models = ref<VlmModel[]>([])
-const modelForm = reactive({ model_id: '' })
+const modelForm = reactive({ model_name: '', model_id: '' })
 const modelRules: FormRules = {
+  model_name: [
+    { required: true, message: '请输入模型名称', trigger: 'blur' },
+    { max: 255, message: '模型名称不能超过 255 个字符', trigger: 'blur' },
+  ],
   model_id: [
     { required: true, message: '请输入模型 ID', trigger: 'blur' },
     { max: 255, message: '模型 ID 不能超过 255 个字符', trigger: 'blur' },
@@ -197,6 +201,7 @@ async function openModelManagement() {
 
 function resetModelForm() {
   editingModelId.value = undefined
+  modelForm.model_name = ''
   modelForm.model_id = ''
   modelFormRef.value?.clearValidate()
 }
@@ -208,6 +213,7 @@ function openModelCreate() {
 
 function openModelEdit(model: VlmModel) {
   editingModelId.value = model.id
+  modelForm.model_name = model.model_name
   modelForm.model_id = model.model_id
   modelFormVisible.value = true
 }
@@ -220,11 +226,15 @@ async function saveModel() {
 
   modelSaving.value = true
   try {
+    const payload = {
+      model_name: modelForm.model_name,
+      model_id: modelForm.model_id,
+    }
     if (editingModelId.value !== undefined) {
-      await updateVlmModel(editingModelId.value, modelForm.model_id)
+      await updateVlmModel(editingModelId.value, payload)
       ElMessage.success('模型更新成功')
     } else {
-      await createVlmModel(modelForm.model_id)
+      await createVlmModel(payload)
       ElMessage.success('模型创建成功')
     }
     modelFormVisible.value = false
@@ -239,7 +249,7 @@ async function saveModel() {
 async function removeModel(model: VlmModel) {
   try {
     await ElMessageBox.confirm(
-      `确定删除模型“${model.model_id}”吗？`,
+      `确定删除模型“${model.model_name}”（${model.model_id}）吗？`,
       '删除模型',
       {
         type: 'warning',
@@ -357,7 +367,8 @@ onBeforeUnmount(() => {
       row-key="id"
       class="tech-table vlm-model-table"
     >
-      <el-table-column prop="model_id" label="模型 ID" min-width="360" show-overflow-tooltip />
+      <el-table-column prop="model_name" label="模型名称" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="model_id" label="模型 ID" min-width="260" show-overflow-tooltip />
       <el-table-column label="操作" width="116" align="center">
         <template #default="{ row }">
           <el-tooltip content="编辑" placement="top">
@@ -372,7 +383,7 @@ onBeforeUnmount(() => {
         <div class="vlm-model-empty">
           <el-icon :size="32"><Cpu /></el-icon>
           <strong>暂无模型</strong>
-          <span>点击新增录入模型 ID</span>
+          <span>点击新增录入模型名称和模型 ID</span>
         </div>
       </template>
     </el-table>
@@ -396,6 +407,16 @@ onBeforeUnmount(() => {
       :rules="modelRules"
       label-position="top"
     >
+      <el-form-item label="模型名称" prop="model_name">
+        <el-input
+          v-model="modelForm.model_name"
+          maxlength="255"
+          show-word-limit
+          clearable
+          placeholder="请输入模型名称"
+          @keyup.enter="saveModel"
+        />
+      </el-form-item>
       <el-form-item label="模型 ID" prop="model_id">
         <el-input
           v-model="modelForm.model_id"

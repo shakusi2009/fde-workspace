@@ -40,11 +40,18 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS vlm_models (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model_name TEXT NOT NULL CHECK (length(trim(model_name)) > 0),
     model_id TEXT NOT NULL UNIQUE CHECK (length(trim(model_id)) > 0),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 `)
+
+const vlmModelColumns = db.prepare('PRAGMA table_info(vlm_models)').all() as Array<{ name: string }>
+if (!vlmModelColumns.some((column) => column.name === 'model_name')) {
+  db.exec("ALTER TABLE vlm_models ADD COLUMN model_name TEXT NOT NULL DEFAULT ''")
+  db.exec('UPDATE vlm_models SET model_name = model_id WHERE model_name = \'\'')
+}
 
 const roleCount = db.prepare('SELECT COUNT(*) AS count FROM roles').get() as { count: number }
 

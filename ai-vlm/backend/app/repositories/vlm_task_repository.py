@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import pymysql
@@ -187,6 +187,7 @@ class VlmTaskRepository:
                         SELECT
                             `id`,
                             `task_id`,
+                            `model_name`,
                             `model_id`,
                             `task_input`,
                             `total_tokens`,
@@ -194,6 +195,8 @@ class VlmTaskRepository:
                             `output_tokens`,
                             `cached_tokens`,
                             `task_status`,
+                            `start_time`,
+                            `end_time`,
                             `output_text`
                         FROM `vlm_tasks_item`
                         WHERE `task_id` = %s
@@ -254,6 +257,7 @@ class VlmTaskRepository:
         self,
         *,
         task_id: int,
+        model_name: str,
         model_id: str,
         task_input: str,
         total_tokens: int | None,
@@ -261,6 +265,8 @@ class VlmTaskRepository:
         output_tokens: int | None,
         cached_tokens: int | None,
         task_status: int,
+        start_time: datetime,
+        end_time: datetime,
         output_text: str,
     ) -> dict[str, Any]:
         connection = self._connect()
@@ -270,6 +276,7 @@ class VlmTaskRepository:
                     """
                         INSERT INTO `vlm_tasks_item` (
                             `task_id`,
+                            `model_name`,
                             `model_id`,
                             `task_input`,
                             `total_tokens`,
@@ -277,12 +284,18 @@ class VlmTaskRepository:
                             `output_tokens`,
                             `cached_tokens`,
                             `task_status`,
+                            `start_time`,
+                            `end_time`,
                             `output_text`
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s
+                        )
                     """,
                     (
                         task_id,
+                        model_name,
                         model_id,
                         task_input,
                         total_tokens,
@@ -290,6 +303,8 @@ class VlmTaskRepository:
                         output_tokens,
                         cached_tokens,
                         task_status,
+                        start_time,
+                        end_time,
                         output_text,
                     ),
                 )
@@ -304,6 +319,7 @@ class VlmTaskRepository:
         return {
             "id": item_id,
             "task_id": task_id,
+            "model_name": model_name,
             "model_id": model_id,
             "task_input": task_input,
             "total_tokens": total_tokens,
@@ -311,6 +327,8 @@ class VlmTaskRepository:
             "output_tokens": output_tokens,
             "cached_tokens": cached_tokens,
             "task_status": task_status,
+            "start_time": start_time,
+            "end_time": end_time,
             "output_text": output_text,
         }
 

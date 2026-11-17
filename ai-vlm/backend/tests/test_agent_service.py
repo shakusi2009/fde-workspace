@@ -49,6 +49,7 @@ def test_agent_builds_single_role_graph_and_extracts_usage(monkeypatch) -> None:
     assert captured["config"]["model"] == "ep-test-model"
     assert captured["config"]["api_key"] == "test-key"
     assert captured["config"]["base_url"] == "https://ark.example/api/v3"
+    assert captured["config"]["timeout"] == 1800
     assert captured["messages"][0].type == "system"
     assert captured["messages"][0].content == "你是自动驾驶视觉专家"
     assert captured["messages"][1].type == "human"
@@ -58,6 +59,49 @@ def test_agent_builds_single_role_graph_and_extracts_usage(monkeypatch) -> None:
     assert result.input_tokens == 120
     assert result.output_tokens == 30
     assert result.cached_tokens == 20
+
+
+def test_agent_adds_video_url_content_for_mp4_input(monkeypatch) -> None:
+    captured = {}
+
+    class FakeChatModel:
+        def __init__(self, **_kwargs):
+            pass
+
+        def invoke(self, messages):
+            captured["messages"] = messages
+            return AIMessage(content="视频分析完成")
+
+    monkeypatch.setattr(
+        "app.services.agent_service.ChatOpenAI",
+        FakeChatModel,
+    )
+    service = VlmAgentService(
+        Settings(
+            _env_file=None,
+            model_agent_api_key="test-key",
+            model_agent_base_url="https://ark.example/api/v3",
+        )
+    )
+    video_url = (
+        "https://video-bucket.tos-cn-beijing.ivolces.com/"
+        "path/to/object.MP4?X-Tos-Signature=test%2Fvalue"
+    )
+    task_input = f"按要求分析这个视频：\n`{video_url}`"
+
+    service.execute(
+        prompt_content="请理解这个视频",
+        task_input=task_input,
+        model_id="ep-test-model",
+    )
+
+    assert captured["messages"][1].content == [
+        {"type": "text", "text": task_input},
+        {
+            "type": "video_url",
+            "video_url": {"url": video_url},
+        },
+    ]
 
 
 def test_agent_rejects_missing_api_key() -> None:

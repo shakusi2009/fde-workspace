@@ -17,5 +17,14 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "ai-agent/frontend/**/*.ts",
+    "ai-agent/frontend/**/*.vue",
+    "ai-marketing/frontend/**/*.ts",
+    "ai-marketing/frontend/**/*.vue",
+    "vite.config.ts"
+  ]
 }

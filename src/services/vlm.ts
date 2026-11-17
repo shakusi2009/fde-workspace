@@ -38,6 +38,7 @@ export type VlmTaskPage = {
 export type VlmTaskItem = {
   id: number
   task_id: number
+  model_name: string
   model_id: string
   task_input: string
   total_tokens: number | null
@@ -45,6 +46,8 @@ export type VlmTaskItem = {
   output_tokens: number | null
   cached_tokens: number | null
   task_status: number | null
+  start_time: string | null
+  end_time: string | null
   output_text: string | null
 }
 
@@ -94,9 +97,15 @@ export type VlmPromptPayload = {
 
 export type VlmModel = {
   id: number
+  model_name: string
   model_id: string
   created_at: string
   updated_at: string
+}
+
+export type VlmModelPayload = {
+  model_name: string
+  model_id: string
 }
 
 export function getVlmOverview() {
@@ -177,17 +186,17 @@ export function getVlmModels() {
   return api<VlmModel[]>('/vlm-models')
 }
 
-export function createVlmModel(modelId: string) {
+export function createVlmModel(payload: VlmModelPayload) {
   return api<{ id: number; message: string }>('/vlm-models', {
     method: 'POST',
-    body: JSON.stringify({ model_id: modelId }),
+    body: JSON.stringify(payload),
   })
 }
 
-export function updateVlmModel(id: number, modelId: string) {
+export function updateVlmModel(id: number, payload: VlmModelPayload) {
   return api<{ message: string }>(`/vlm-models/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ model_id: modelId }),
+    body: JSON.stringify(payload),
   })
 }
 

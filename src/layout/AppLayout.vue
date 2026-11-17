@@ -10,11 +10,14 @@ import {
   Files,
   Fold,
   Grid,
+  Lightning,
   List,
   Lock,
   MagicStick,
   SwitchButton,
+  TrendCharts,
   User,
+  Van,
 } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
@@ -120,9 +123,27 @@ async function logout() {
               <el-icon><Cpu /></el-icon>
               <template #title>端云Agent</template>
             </el-menu-item>
+            <el-menu-item index="/agents/vehicle">
+              <el-icon class="ev-car-icon">
+                <Van />
+                <Lightning class="ev-car-bolt" />
+              </el-icon>
+              <template #title>车端Agent</template>
+            </el-menu-item>
             <el-menu-item index="/agents/base-data">
               <el-icon><Files /></el-icon>
               <template #title>基础数据管理</template>
+            </el-menu-item>
+          </el-sub-menu>
+
+          <el-sub-menu v-if="auth.can('agent_center')" index="marketing-ai">
+            <template #title>
+              <el-icon><TrendCharts /></el-icon>
+              <span>营销AI中台</span>
+            </template>
+            <el-menu-item index="/agents/marketing/public-insight">
+              <el-icon><DataAnalysis /></el-icon>
+              <template #title>公域洞察Agent</template>
             </el-menu-item>
           </el-sub-menu>
 
@@ -176,8 +197,23 @@ async function logout() {
         <el-sub-menu v-if="auth.can('agent_center')" index="mobile-agents">
           <template #title><el-icon><MagicStick /></el-icon><span>车联AI业务</span></template>
           <el-menu-item index="/agents"><el-icon><Cpu /></el-icon><span>端云Agent</span></el-menu-item>
+          <el-menu-item index="/agents/vehicle">
+            <el-icon class="ev-car-icon">
+              <Van />
+              <Lightning class="ev-car-bolt" />
+            </el-icon>
+            <span>车端Agent</span>
+          </el-menu-item>
           <el-menu-item index="/agents/base-data">
             <el-icon><Files /></el-icon><span>基础数据管理</span>
+          </el-menu-item>
+        </el-sub-menu>
+        <el-sub-menu v-if="auth.can('agent_center')" index="mobile-marketing-ai">
+          <template #title>
+            <el-icon><TrendCharts /></el-icon><span>营销AI中台</span>
+          </template>
+          <el-menu-item index="/agents/marketing/public-insight">
+            <el-icon><DataAnalysis /></el-icon><span>公域洞察Agent</span>
           </el-menu-item>
         </el-sub-menu>
         <el-sub-menu v-if="auth.can('account_center')" index="mobile-account">
@@ -193,3 +229,22 @@ async function logout() {
     </el-drawer>
   </div>
 </template>
+
+<style scoped>
+.ev-car-icon {
+  position: relative;
+  overflow: visible;
+}
+
+.ev-car-bolt {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 10px;
+  height: 10px;
+  padding: 1px;
+  color: #84d661;
+  background: #071310;
+  border-radius: 50%;
+}
+</style>
